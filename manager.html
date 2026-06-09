@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manager Dashboard - HR Operations Scorecard</title>
+    <title>Manager Dashboard - Real-Time</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
     <style>
@@ -47,90 +47,74 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 30px 20px;
         }
         
-        .filters {
+        .status-bar {
             background: white;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 30px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        
-        .filters select {
-            padding: 10px 15px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            background: white;
-        }
-        
-        .filters button {
-            padding: 10px 25px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .filters button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-        
-        .team-section {
-            margin-bottom: 40px;
-        }
-        
-        .team-header {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
         }
         
-        .team-header h2 {
-            color: #667eea;
-            font-size: 18px;
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
-        .team-header .count {
-            background: #f0f4ff;
-            padding: 6px 12px;
-            border-radius: 20px;
-            color: #667eea;
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .status-text {
             font-weight: 600;
-            font-size: 12px;
+            color: #333;
+            font-size: 14px;
         }
         
-        .employees {
+        .employee-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
         }
         
         .employee-card {
             background: white;
-            padding: 20px;
             border-radius: 10px;
+            padding: 20px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             transition: all 0.3s ease;
             border-left: 4px solid #667eea;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .employee-card:hover {
@@ -148,38 +132,36 @@
         .employee-id {
             font-size: 12px;
             color: #999;
-            margin-bottom: 12px;
+            margin-bottom: 15px;
         }
         
-        .score-line {
+        .metric {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             font-size: 13px;
         }
         
-        .score-label {
+        .metric-label {
             color: #666;
         }
         
-        .score-value {
+        .metric-value {
             font-weight: 700;
             color: #667eea;
-            font-size: 16px;
         }
         
-        .score-bar {
+        .metric-bar {
             width: 100%;
             height: 6px;
             background: #f0f0f0;
             border-radius: 3px;
-            margin-top: 5px;
-            margin-bottom: 15px;
+            margin-top: 4px;
             overflow: hidden;
         }
         
-        .score-bar-fill {
+        .metric-bar-fill {
             height: 100%;
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             border-radius: 3px;
@@ -203,17 +185,48 @@
             margin-bottom: 15px;
         }
         
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .controls input, .controls select {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .controls button {
+            padding: 10px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .controls button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
         @media (max-width: 768px) {
-            .employees {
+            .employee-grid {
                 grid-template-columns: 1fr;
             }
             
-            .filters {
+            .status-bar {
                 flex-direction: column;
-            }
-            
-            .filters select, .filters button {
-                width: 100%;
+                align-items: flex-start;
             }
         }
     </style>
@@ -223,28 +236,32 @@
         <h1>👥 Manager Dashboard</h1>
         <div>
             <a href="index.html">← Home</a>
+            <a href="admin-upload.html">Admin Upload</a>
             <a href="associate.html">Associate</a>
-            <a href="admin.html">Admin</a>
         </div>
     </div>
     
     <div class="container">
-        <div class="filters">
-            <select id="teamFilter" onchange="filterTeam()">
-                <option value="">All Teams</option>
-                <option value="Compliance">Compliance</option>
-                <option value="Final Clearance Team">Final Clearance Team</option>
-                <option value="HR Operations">HR Operations</option>
-                <option value="Internal Audit Team">Internal Audit Team</option>
-                <option value="Paperwork Audit">Paperwork Audit</option>
-                <option value="MSD Data Management">MSD Data Management</option>
-                <option value="Requisitions and Submissions">Requisitions and Submissions</option>
-            </select>
-            <button onclick="refreshData()">🔄 Refresh Data</button>
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-dot"></span>
+                <span class="status-text">Live - Real-time Updates</span>
+            </div>
+            <div class="status-item">
+                <span class="status-text" id="employeeCount">Loading...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-text" id="lastUpdate">Waiting for data...</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <input type="text" id="searchInput" placeholder="Search employee..." onkeyup="filterEmployees()" style="flex: 1; min-width: 200px;">
+            <button onclick="refreshData()">🔄 Refresh</button>
         </div>
         
         <div id="content">
-            <div class="loading">⏳ Loading team data from Firebase...</div>
+            <div class="loading">⏳ Waiting for data from Firebase...</div>
         </div>
     </div>
     
@@ -266,111 +283,114 @@
         
         let allEmployees = [];
         
-        function loadData() {
-            db.ref('employee-master').once('value', snap => {
-                const emps = snap.val() || {};
+        // Real-time listener
+        function setupRealtimeListener() {
+            db.ref('employee-scores').on('value', (snapshot) => {
+                const data = snapshot.val() || {};
                 
-                db.ref('performance-data').once('value', perfSnap => {
-                    const perfs = perfSnap.val() || {};
-                    
-                    db.ref('employee-module-data').once('value', altSnap => {
-                        const alts = altSnap.val() || {};
-                        
-                        allEmployees = [];
-                        
-                        for (const id in emps) {
-                            const emp = emps[id];
-                            const perf = perfs[id] || alts[id] || {};
-                            
-                            allEmployees.push({
-                                id: id,
-                                name: emp.name || '',
-                                team: emp.team || 'Unassigned',
-                                manager: emp.manager || '',
-                                attendance: perf.attendance || 0,
-                                process_knowledge: perf.process_knowledge || 0,
-                                productivity: perf.productivity || 0,
-                                overall_score: perf.overall_score || ((perf.attendance || 0) + (perf.process_knowledge || 0)) / 2
-                            });
-                        }
-                        
-                        renderTeams();
+                allEmployees = [];
+                for (const empId in data) {
+                    const emp = data[empId];
+                    allEmployees.push({
+                        empId: empId,
+                        attendance: emp.attendance || 0,
+                        process_knowledge: emp.process_knowledge || 0,
+                        productivity: emp.productivity || 0,
+                        audit_score: emp.audit_score || 0,
+                        paperwork: emp.paperwork || 0,
+                        nh_pending: emp.nh_pending || 0,
+                        lastUpdated: emp.lastUpdated || ''
                     });
-                });
+                }
+                
+                renderEmployees();
+                updateStatus();
             });
         }
         
-        function filterTeam() {
-            renderTeams();
+        function updateStatus() {
+            document.getElementById('employeeCount').textContent = `${allEmployees.length} employees loaded`;
+            document.getElementById('lastUpdate').textContent = `Updated: ${new Date().toLocaleTimeString()}`;
         }
         
-        function refreshData() {
-            loadData();
+        function filterEmployees() {
+            renderEmployees();
         }
         
-        function renderTeams() {
-            const filter = document.getElementById('teamFilter').value;
-            const filtered = filter ? allEmployees.filter(e => e.team === filter) : allEmployees;
+        function renderEmployees() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allEmployees.filter(emp => 
+                emp.empId.toLowerCase().includes(searchTerm)
+            );
             
             if (filtered.length === 0) {
-                document.getElementById('content').innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>No employee data found. Make sure the Python script is running.</p></div>';
+                document.getElementById('content').innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">📭</div>
+                        <p>No employees found. Upload Excel files in Admin Panel.</p>
+                    </div>
+                `;
                 return;
             }
             
-            // Group by team
-            const teams = {};
+            let html = '<div class="employee-grid">';
+            
             filtered.forEach(emp => {
-                if (!teams[emp.team]) teams[emp.team] = [];
-                teams[emp.team].push(emp);
+                const overallScore = ((emp.attendance || 0) + (emp.process_knowledge || 0)) / 2;
+                
+                html += `
+                    <div class="employee-card">
+                        <div class="employee-name">${emp.empId}</div>
+                        <div class="employee-id">ID: ${emp.empId}</div>
+                        
+                        <div class="metric">
+                            <span class="metric-label">Overall</span>
+                            <span class="metric-value">${overallScore.toFixed(1)}%</span>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill" style="width: ${Math.min(overallScore, 100)}%"></div>
+                        </div>
+                        
+                        ${emp.attendance > 0 ? `
+                        <div class="metric">
+                            <span class="metric-label">Attendance</span>
+                            <span class="metric-value">${emp.attendance.toFixed(1)}%</span>
+                        </div>
+                        ` : ''}
+                        
+                        ${emp.process_knowledge > 0 ? `
+                        <div class="metric">
+                            <span class="metric-label">Knowledge</span>
+                            <span class="metric-value">${emp.process_knowledge.toFixed(1)}%</span>
+                        </div>
+                        ` : ''}
+                        
+                        ${emp.productivity > 0 ? `
+                        <div class="metric">
+                            <span class="metric-label">Productivity</span>
+                            <span class="metric-value">${Math.round(emp.productivity)}</span>
+                        </div>
+                        ` : ''}
+                        
+                        ${emp.audit_score > 0 ? `
+                        <div class="metric">
+                            <span class="metric-label">Audit Score</span>
+                            <span class="metric-value">${emp.audit_score.toFixed(1)}%</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
             });
             
-            let html = '';
-            for (const team in teams) {
-                html += `
-                    <div class="team-section">
-                        <div class="team-header">
-                            <h2>👥 ${team}</h2>
-                            <span class="count">${teams[team].length} employees</span>
-                        </div>
-                        <div class="employees">
-                `;
-                
-                teams[team].forEach(emp => {
-                    const score = emp.overall_score || 0;
-                    html += `
-                        <div class="employee-card">
-                            <div class="employee-name">${emp.name}</div>
-                            <div class="employee-id">ID: ${emp.id}</div>
-                            
-                            <div class="score-line">
-                                <span class="score-label">Overall Score</span>
-                                <span class="score-value">${score.toFixed(1)}%</span>
-                            </div>
-                            <div class="score-bar">
-                                <div class="score-bar-fill" style="width: ${Math.min(score, 100)}%"></div>
-                            </div>
-                            
-                            <div class="score-line">
-                                <span class="score-label">Attendance</span>
-                                <span class="score-value">${emp.attendance.toFixed(1)}%</span>
-                            </div>
-                            
-                            <div class="score-line">
-                                <span class="score-label">Process Knowledge</span>
-                                <span class="score-value">${emp.process_knowledge.toFixed(1)}%</span>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                html += `</div></div>`;
-            }
-            
+            html += '</div>';
             document.getElementById('content').innerHTML = html;
         }
         
-        loadData();
-        setInterval(loadData, 10000); // Refresh every 10 seconds
+        function refreshData() {
+            updateStatus();
+        }
+        
+        setupRealtimeListener();
     </script>
 </body>
 </html>

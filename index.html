@@ -105,6 +105,17 @@
         .card.manager-card h2 { color: #4ECDC4; }
         .card.associate-card h2 { color: #FFE66D; }
         
+        .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
         .footer {
             text-align: center;
             color: white;
@@ -133,22 +144,25 @@
         <div class="cards">
             <div class="card admin-card">
                 <span class="card-icon">⚙️</span>
-                <h2>Admin Panel</h2>
-                <p>Configure local folder path for data synchronization</p>
-                <a href="admin.html">Access Admin →</a>
+                <h2>Upload Data</h2>
+                <p>Upload your Excel files directly - real-time processing in browser</p>
+                <span class="badge">✨ Web-Based</span>
+                <a href="admin-upload.html">Start Upload →</a>
             </div>
             
             <div class="card manager-card">
                 <span class="card-icon">👥</span>
-                <h2>Manager Dashboard</h2>
-                <p>View real-time team performance and employee data</p>
-                <a href="manager.html">Open Dashboard →</a>
+                <h2>Dashboard</h2>
+                <p>View real-time employee scorecards with live updates from Firebase</p>
+                <span class="badge">🔄 Real-Time</span>
+                <a href="manager-realtime.html">Open Dashboard →</a>
             </div>
             
             <div class="card associate-card">
                 <span class="card-icon">👤</span>
-                <h2>Associate Scorecard</h2>
-                <p>Look up your personal performance scorecard</p>
+                <h2>My Scorecard</h2>
+                <p>Look up your personal performance scorecard in real-time</p>
+                <span class="badge">⚡ Instant</span>
                 <a href="associate.html">View Scorecard →</a>
             </div>
         </div>
