@@ -1,0 +1,283 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║     ✅ YOUR FILES ARE READY - FINAL SETUP INSTRUCTIONS                    ║
+║                                                                            ║
+║     Everything you need is in these files!                                ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+📋 WHAT YOU UPLOADED (VERIFIED ✅)
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ _firebaserc
+   Status: CORRECT (needs to be renamed to .firebaserc)
+   Content: Valid project ID configuration
+
+✅ firebase.json  
+   Status: CORRECT ✅
+   Content: Valid Firebase Hosting configuration
+
+✅ firebase-service-account_json.json
+   Status: CORRECT (needs to be renamed to firebase-service-account.json)
+   Content: Valid Firebase credentials with private key
+
+✅ folder-monitor.py
+   Status: CORRECT ✅
+   Content: Valid Python monitoring script
+
+✅ README.txt
+   Status: CORRECT ✅
+   Content: Deployment instructions
+
+
+🔧 STEP 1: RENAME FILES (IMPORTANT!)
+═══════════════════════════════════════════════════════════════════════════════
+
+You have 2 files with WRONG NAMES. They need to be renamed:
+
+RENAME 1:
+From: _firebaserc
+To:   .firebaserc
+     (just add a dot at the beginning)
+
+HOW:
+1. Right-click on _firebaserc
+2. Click "Rename"
+3. Delete the underscore at start
+4. Type: .firebaserc
+5. Press Enter
+
+RENAME 2:
+From: firebase-service-account_json.json
+To:   firebase-service-account.json
+     (change underscores to hyphens)
+
+HOW:
+1. Right-click on firebase-service-account_json.json
+2. Click "Rename"
+3. Change to: firebase-service-account.json
+4. Press Enter
+
+
+✅ STEP 2: COLLECT ALL FILES IN ONE FOLDER
+═══════════════════════════════════════════════════════════════════════════════
+
+Create a folder on your computer:
+C:\Users\FazyFlowerFlorita\OneDrive - Pride Technologies\Documents\NNN\NHR\firebase-setup\
+
+Put these files in that folder:
+✓ .firebaserc                        (renamed from _firebaserc)
+✓ firebase.json
+✓ firebase-service-account.json      (renamed from firebase-service-account_json.json)
+✓ folder-monitor.py
+✓ README.txt
+
+
+📁 YOUR FOLDER SHOULD LOOK LIKE:
+═══════════════════════════════════════════════════════════════════════════════
+
+firebase-setup\
+├── .firebaserc                      ← Config file
+├── firebase.json                    ← Hosting config
+├── firebase-service-account.json    ← Credentials (IMPORTANT!)
+├── folder-monitor.py                ← Python script
+└── README.txt                       ← Instructions
+
+
+🚀 STEP 3: RUN THE PYTHON SCRIPT
+═══════════════════════════════════════════════════════════════════════════════
+
+Open Command Prompt:
+Windows Key + R → Type: cmd → Enter
+
+Navigate to your folder:
+cd C:\Users\FazyFlowerFlorita\OneDrive - Pride Technologies\Documents\NNN\NHR\firebase-setup
+
+Install required packages (one time only):
+pip install openpyxl firebase-admin
+
+Run the script:
+python folder-monitor.py
+
+When prompted, enter your LOCAL folder path:
+C:\Users\FazyFlowerFlorita\Pride Technologies\RTA - 2026
+
+Expected output:
+✅ Firebase initialized successfully!
+✅ Monitoring folder: C:\Users\...
+🚀 Starting folder monitor
+
+
+📊 WHAT THE SCRIPT DOES
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Monitors your SharePoint-synced folder
+2. Detects Excel files (Employee Master, Performance Data)
+3. Reads and parses the Excel data
+4. Syncs everything to Firebase Cloud
+5. Repeats every 10 seconds (checks for changes)
+
+Output will show:
+📁 Found X Excel file(s)
+  📄 Employee Master.xlsx
+    ✅ Synced X employees
+  📄 Performance Data.xlsx
+    ✅ Synced X records
+☁️ Synced X employees to Firebase
+☁️ Synced X records to Firebase
+✅ Last sync: 2026-06-03 15:30:45
+
+
+⏳ WAIT FOR SUCCESS MESSAGE
+═══════════════════════════════════════════════════════════════════════════════
+
+When you see this, it's working! ✅
+
+✅ Firebase initialized successfully!
+✅ Monitoring folder: C:\Users\...
+🚀 Starting folder monitor
+
+The script will keep running. Press Ctrl+C to stop.
+
+
+🔍 HOW TO VERIFY IT'S WORKING
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Keep Python script running
+2. Go to Firebase Console:
+   https://console.firebase.google.com/
+3. Select project: hrops-scorecard---rta
+4. Click: Realtime Database
+5. You should see these nodes:
+   ├── employee-master/
+   │   ├── P11561: {name, team, manager...}
+   │   ├── P12976: {...}
+   │   └── ...
+   └── performance-data/
+       ├── P11561: {overall_score, quality...}
+       ├── P12976: {...}
+       └── ...
+
+If you see data there, it's WORKING! 🎉
+
+
+⚠️ IMPORTANT NOTES
+═══════════════════════════════════════════════════════════════════════════════
+
+1. The script needs firebase-service-account.json in the SAME folder
+   Make sure filename is EXACTLY: firebase-service-account.json
+   (Not firebase-service-account_json.json)
+
+2. The script monitors continuously
+   Keep it running in Command Prompt
+   It will sync whenever Excel files change
+
+3. The web app will read from Firebase
+   Once data is synced to Firebase, the web app will show it
+
+4. Your Excel files should be in the local SharePoint folder:
+   C:\Users\FazyFlowerFlorita\Pride Technologies\RTA - 2026\
+   
+   Files it looks for:
+   - Any file with "Employee" in name (employee master)
+   - Any file with "Score" or "Performance" in name
+
+
+❌ TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════════════
+
+Error: "firebase-service-account.json not found"
+→ Make sure you renamed the file correctly
+→ File must be named EXACTLY: firebase-service-account.json
+→ It must be in the SAME folder as folder-monitor.py
+
+Error: "Folder not found"
+→ Enter your LOCAL folder path, not SharePoint URL
+→ Example: C:\Users\FazyFlowerFlorita\Pride Technologies\RTA - 2026
+
+Error: "No Excel files found"
+→ Check your folder has Excel files
+→ Excel files should be: .xlsx or .xls format
+
+Error: "Firebase sync error"
+→ Check internet connection
+→ Check Firebase Console is accessible
+→ Verify service account JSON is valid
+
+
+🎯 COMPLETE WORKFLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+You:                                 Cloud:
+Local Folder                         Firebase
+(SharePoint sync)                    │
+    ↓                                │
+Excel Files                          │
+    ↓                                │
+folder-monitor.py                    │
+(reads Excel)                        │
+    ↓                                │
+Parses Data                          │
+    ↓                                │
+Syncs to Firebase ────────────────→ Realtime Database
+                                     │
+                                   Web App
+                                     │
+                                   Scorecards
+                                     │
+                        https://hrops-scorecard---rta.web.app/
+
+
+✅ NEXT STEPS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. ✅ Rename the 2 files:
+   - _firebaserc → .firebaserc
+   - firebase-service-account_json.json → firebase-service-account.json
+
+2. ✅ Create folder and copy all 5 files
+
+3. ✅ Open Command Prompt
+
+4. ✅ Run: python folder-monitor.py
+
+5. ✅ Enter your local folder path
+
+6. ✅ Wait for success message
+
+7. ✅ Check Firebase Console for synced data
+
+8. 🎉 DONE! Data is syncing to cloud!
+
+
+📞 VERIFICATION CHECKLIST
+═══════════════════════════════════════════════════════════════════════════════
+
+Before running script:
+☑ Renamed _firebaserc to .firebaserc
+☑ Renamed firebase-service-account_json.json to firebase-service-account.json
+☑ All files in one folder
+☑ Python installed
+☑ Packages installed (pip install openpyxl firebase-admin)
+
+After running script:
+☑ Script starts without errors
+☑ Shows "✅ Firebase initialized successfully!"
+☑ Shows "🚀 Starting folder monitor"
+☑ Excel files detected
+☑ Shows "Synced X employees"
+☑ Shows "Synced X records"
+☑ No errors in output
+
+In Firebase Console:
+☑ Can see employee-master data
+☑ Can see performance-data
+☑ Data matches your Excel files
+
+
+═════════════════════════════════════════════════════════════════════════════════
+
+🎊 THAT'S IT! Your system is ready to monitor and sync data!
+
+═════════════════════════════════════════════════════════════════════════════════

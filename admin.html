@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - HR Operations Scorecard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            z-index: 1000;
+        }
+        
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+            font-weight: 600;
+            transition: opacity 0.3s;
+        }
+        
+        .navbar a:hover {
+            opacity: 0.7;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 80px;
+            background: white;
+            border-radius: 12px;
+            padding: 50px 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .container h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            color: #999;
+            margin-bottom: 40px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 30px;
+        }
+        
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .button:active {
+            transform: translateY(0);
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 8px;
+            display: none;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+        
+        .example {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            .container h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="index.html">← Back to Home</a>
+    </div>
+    
+    <div class="container">
+        <h1>⚙️ Admin Panel</h1>
+        <p class="subtitle">Configure local folder path for data synchronization</p>
+        
+        <div class="info-box">
+            📌 Enter the path to your local folder where Excel files are stored. 
+            This folder should be synced with SharePoint and contain your employee data files.
+        </div>
+        
+        <form onsubmit="savePath(event)">
+            <div class="form-group">
+                <label>Local Folder Path</label>
+                <input 
+                    type="text" 
+                    id="folderPath" 
+                    placeholder="e.g., C:\Users\YourName\Pride Technologies\RTA - 2026"
+                    required
+                />
+                <div class="example">
+                    Example: C:\Users\FazyFlowerFlorita\Pride Technologies\RTA - 2026
+                </div>
+            </div>
+            
+            <button type="submit" class="button">💾 Save Folder Path</button>
+        </form>
+        
+        <div id="status" class="status"></div>
+        
+        <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid #e0e0e0; font-size: 13px; color: #999;">
+            <strong>Next Steps:</strong><br><br>
+            1. Enter your local folder path above<br>
+            2. Click "Save Folder Path"<br>
+            3. Run the Python script on your computer:<br>
+            <code style="background: #f5f5f5; padding: 4px 8px; border-radius: 4px;">python folder-monitor-FIXED.py</code><br>
+            4. The script will monitor your folder and sync data to Firebase<br>
+            5. Check the Manager Dashboard for real-time data
+        </div>
+    </div>
+    
+    <script>
+        // Load saved path on page load
+        window.addEventListener('load', () => {
+            const saved = localStorage.getItem('folderPath');
+            if (saved) {
+                document.getElementById('folderPath').value = saved;
+            }
+        });
+        
+        function savePath(event) {
+            event.preventDefault();
+            const path = document.getElementById('folderPath').value.trim();
+            
+            if (!path) {
+                showStatus('Please enter a folder path', 'error');
+                return;
+            }
+            
+            localStorage.setItem('folderPath', path);
+            showStatus('✅ Folder path saved! Now run the Python script.', 'success');
+        }
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+    </script>
+</body>
+</html>
