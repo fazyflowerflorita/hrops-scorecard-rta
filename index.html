@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Operations Scorecard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1000px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+        
+        .header h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 18px;
+            opacity: 0.95;
+        }
+        
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+        }
+        
+        .card-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .card h2 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        
+        .card p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            min-height: 45px;
+        }
+        
+        .card a {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .card a:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .card.admin-card h2 { color: #FF6B6B; }
+        .card.manager-card h2 { color: #4ECDC4; }
+        .card.associate-card h2 { color: #FFE66D; }
+        
+        .footer {
+            text-align: center;
+            color: white;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 32px;
+            }
+            
+            .cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 HR Operations Scorecard</h1>
+            <p>Real-Time Performance Analytics Platform</p>
+        </div>
+        
+        <div class="cards">
+            <div class="card admin-card">
+                <span class="card-icon">⚙️</span>
+                <h2>Admin Panel</h2>
+                <p>Select an Excel folder and generate scorecards instantly</p>
+                <a href="admin.html">Access Admin →</a>
+            </div>
+            
+            <div class="card manager-card">
+                <span class="card-icon">👥</span>
+                <h2>Manager Dashboard</h2>
+                <p>View real-time team performance and employee data</p>
+                <a href="manager.html">Open Dashboard →</a>
+            </div>
+            
+            <div class="card associate-card">
+                <span class="card-icon">👤</span>
+                <h2>Associate Scorecard</h2>
+                <p>Look up your personal performance scorecard</p>
+                <a href="associate.html">View Scorecard →</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>HROps Scorecard - Real-Time Analytics | Pride Technologies RTA 2026</p>
+        </div>
+    </div>
+</body>
+</html>
