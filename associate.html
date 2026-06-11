@@ -355,47 +355,54 @@
             return Number.isFinite(parsed) ? parsed : 0;
         }
 
-        function buildEmployeeRows(rootData) {
-            const emps = rootData['employee-master'] || {};
-            const perfs = rootData['performance-data'] || {};
-            const moduleData = rootData['employee-module-data'] || {};
-            const scoreData = rootData['employee-scores'] || {};
-            const ids = new Set([
-                ...Object.keys(emps),
-                ...Object.keys(perfs),
-                ...Object.keys(moduleData),
-                ...Object.keys(scoreData)
-            ]);
+        function buildEmployeeRows(emps, perfs) {
+            const ids = new Set([...Object.keys(emps), ...Object.keys(perfs)]);
 
             return Array.from(ids).map(id => {
-                const emp = emps[id] || {};
-                const perf = perfs[id] || moduleData[id] || scoreData[id] || {};
+                const emp  = emps[id]  || {};
+                const perf = perfs[id] || {};
                 const attendance = toNumber(perf.attendance);
-                const knowledge = toNumber(perf.process_knowledge);
-                const audit = toNumber(perf.audit_score);
-                const scoreInputs = [attendance, knowledge, audit].filter(value => value > 0);
-                const calculatedScore = scoreInputs.length ? scoreInputs.reduce((sum, value) => sum + value, 0) / scoreInputs.length : 0;
+                const knowledge  = toNumber(perf.process_knowledge);
+                const audit      = toNumber(perf.audit_score);
+                const scoreInputs = [attendance, knowledge, audit].filter(v => v > 0);
+                const calculatedScore = scoreInputs.length
+                    ? scoreInputs.reduce((s, v) => s + v, 0) / scoreInputs.length
+                    : 0;
 
                 return {
                     id,
-                    name: emp.name || perf.name || id,
+                    name:             emp.name || perf.name || id,
                     attendance,
                     process_knowledge: knowledge,
-                    productivity: toNumber(perf.productivity),
-                    overall_score: toNumber(perf.overall_score) || calculatedScore
+                    productivity:     toNumber(perf.productivity),
+                    overall_score:    toNumber(perf.overall_score) || calculatedScore,
+                    rank:             toNumber(perf.rank) || toNumber(emp.rank) || 0,
                 };
-            });
+            }).sort((a, b) => (a.rank || 9999) - (b.rank || 9999));
         }
 
         function loadEmployees() {
-            db.ref('/').off('value');
-            db.ref('/').on('value', snap => {
-                allEmployees = buildEmployeeRows(snap.val() || {});
+            Promise.all([
+                db.ref('employee-master').once('value'),
+                db.ref('performance-data').once('value')
+            ]).then(([empSnap, perfSnap]) => {
+                allEmployees = buildEmployeeRows(empSnap.val() || {}, perfSnap.val() || {});
                 renderAllScorecards();
                 if (document.getElementById('scorecard').classList.contains('active')) {
                     searchEmployee(true);
                 }
-            }, error => {
+
+                // Live updates
+                db.ref('performance-data').on('value', snap => {
+                    db.ref('employee-master').once('value').then(es => {
+                        allEmployees = buildEmployeeRows(es.val() || {}, snap.val() || {});
+                        renderAllScorecards();
+                        if (document.getElementById('scorecard').classList.contains('active')) {
+                            searchEmployee(true);
+                        }
+                    });
+                });
+            }).catch(error => {
                 showStatus(`Unable to load Firebase data: ${error.message}`, 'error');
             });
         }
@@ -418,7 +425,8 @@
             // Display scorecard
             const score = emp.overall_score || 0;
             document.getElementById('displayName').textContent = emp.name;
-            document.getElementById('displayId').textContent = `ID: ${emp.id}`;
+            document.getElementById('displayId').textContent =
+                `ID: ${emp.id}` + (emp.rank ? `  •  Rank #${emp.rank}` : '');
             document.getElementById('scoreOverall').textContent = score.toFixed(1) + '%';
             document.getElementById('scoreAttendance').textContent = emp.attendance.toFixed(1) + '%';
             document.getElementById('scoreKnowledge').textContent = emp.process_knowledge.toFixed(1) + '%';
@@ -450,14 +458,21 @@
 
             container.innerHTML = allEmployees.map(emp => {
                 const score = emp.overall_score || 0;
+                const rankText = emp.rank ? `<span style="font-size:11px;color:#667eea;font-weight:700;">Rank #${emp.rank}</span>` : '';
                 return `
-                    <div class="mini-scorecard" onclick="openEmployee('${emp.id.replace(/'/g, "\\'")}')">
-                        <strong>${emp.name}</strong>
-                        <span>ID: ${emp.id}</span>
+                    <div class="mini-scorecard" data-emp-id="${escapeHtml(emp.id)}">
+                        <strong>${escapeHtml(emp.name)}</strong>
+                        <span>ID: ${escapeHtml(emp.id)}</span>
+                        ${rankText}
                         <div class="mini-score">${score.toFixed(1)}%</div>
                     </div>
                 `;
             }).join('');
+
+            // Safe event delegation — no inline onclick with user data
+            container.querySelectorAll('.mini-scorecard').forEach(el => {
+                el.addEventListener('click', () => openEmployee(el.dataset.empId));
+            });
         }
 
         function openEmployee(id) {

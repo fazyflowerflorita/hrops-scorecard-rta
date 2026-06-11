@@ -178,15 +178,13 @@
                 const now = new Date().toISOString();
 
                 await db.ref('/').update({
-                    'employee-master': result.employeeMaster,
+                    'employee-master':  result.employeeMaster,
                     'performance-data': result.performanceData,
-                    'employee-module-data': result.performanceData,
-                    'employee-scores': result.performanceData,
                     'sync-status': {
-                        lastUpdated: now,
+                        lastUpdated:   now,
                         employeeCount: Object.keys(result.performanceData).length,
-                        fileCount: selectedFiles.length,
-                        source: 'admin-folder-upload'
+                        fileCount:     selectedFiles.length,
+                        source:        'admin-folder-upload'
                     }
                 });
 
@@ -238,11 +236,12 @@
                 });
             }
 
+            const now = new Date().toISOString();
             Object.keys(performanceData).forEach(id => {
                 const perf = performanceData[id];
                 const scoreInputs = [perf.attendance, perf.process_knowledge, perf.audit_score].filter(value => value > 0);
                 perf.overall_score = perf.overall_score || (scoreInputs.length ? round(scoreInputs.reduce((sum, value) => sum + value, 0) / scoreInputs.length) : 0);
-                perf.lastUpdated = new Date().toISOString();
+                perf.lastUpdated = now;
 
                 if (!employeeMaster[id]) {
                     employeeMaster[id] = {
@@ -253,6 +252,15 @@
                         department: 'HR Operations'
                     };
                 }
+            });
+
+            // Rank: 1 = highest overall_score
+            const sortedIds = Object.keys(performanceData).sort(
+                (a, b) => (performanceData[b].overall_score || 0) - (performanceData[a].overall_score || 0)
+            );
+            sortedIds.forEach((id, index) => {
+                performanceData[id].rank = index + 1;
+                if (employeeMaster[id]) employeeMaster[id].rank = index + 1;
             });
 
             return { employeeMaster, performanceData, fileSummaries };
@@ -269,11 +277,22 @@
 
         function parseRows(fileName, rows, employeeMaster, performanceData, defaultTeam) {
             rows.forEach(row => {
-                const id = extractEmployeeId(row) || idFromName(extractName(row));
+                let id = extractEmployeeId(row);
+
+                // If no explicit ID column, try to match by name against already-built master
+                if (!id) {
+                    const rowName = extractName(row);
+                    if (rowName) {
+                        const masterEntry = Object.values(employeeMaster).find(e =>
+                            normalize(e.name) === normalize(rowName)
+                        );
+                        id = masterEntry ? masterEntry.empId : idFromName(rowName);
+                    }
+                }
                 if (!id) return;
 
-                const name = extractName(row) || id.replace(/_/g, ' ');
-                const team = defaultTeam || normalizeTeamName(getValue(row, ['team', 'team name', 'process'])) || 'Unassigned';
+                const name    = extractName(row) || id.replace(/_/g, ' ');
+                const team    = defaultTeam || normalizeTeamName(getValue(row, ['team', 'team name', 'process'])) || 'Unassigned';
                 const manager = getValue(row, ['manager', 'reporting manager', 'india reporting manager']) || '';
                 const existingEmployee = employeeMaster[id] || {};
 
@@ -290,16 +309,28 @@
                 }
 
                 const perf = performanceData[id];
-                perf.name = perf.name || name;
-                perf.team = team;
+                perf.name    = perf.name    || name;
+                perf.team    = team;
                 perf.manager = perf.manager || manager;
 
-                if (fileName.includes('attendance')) perf.attendance = latestNumber(row);
-                else if (fileName.includes('knowledge')) perf.process_knowledge = latestNumber(row);
-                else if (fileName.includes('production') || fileName.includes('productivity')) perf.productivity = sumNumbers(row);
-                else if (fileName.includes('audit') || fileName.includes('error')) {
-                    perf.audit_score = getNumberByKey(row, ['score', 'rating', 'quality']) || latestNumber(row);
-                    perf.audit_errors = getNumberByKey(row, ['error', 'errors', 'count']);
+                if (fileName.includes('attendance')) {
+                    perf.attendance = (
+                        getNumberByKey(row, ['attendance %', '% attendance', 'attendance', 'present %', 'present']) ||
+                        latestNumber(row)
+                    );
+                } else if (fileName.includes('knowledge')) {
+                    perf.process_knowledge = (
+                        getNumberByKey(row, ['score', 'test score', 'marks', 'knowledge']) ||
+                        latestNumber(row)
+                    );
+                } else if (fileName.includes('production') || fileName.includes('productivity')) {
+                    perf.productivity = (
+                        getNumberByKey(row, ['count', 'completed', 'cases', 'production', 'units', 'total count']) ||
+                        latestNumber(row)
+                    );
+                } else if (fileName.includes('audit') || fileName.includes('error')) {
+                    perf.audit_score  = getNumberByKey(row, ['score', 'rating', 'quality score']) || latestNumber(row);
+                    perf.audit_errors = getNumberByKey(row, ['error', 'errors', 'finding', 'count']);
                 } else if (fileName.includes('pending')) {
                     perf.nh_pending = getNumberByKey(row, ['pending', 'count']) || latestNumber(row);
                 } else {
@@ -344,14 +375,16 @@
         }
 
         function latestNumber(row) {
-            return Object.values(row).reduce((latest, value) => {
-                const number = toNumber(value);
-                return number || latest;
-            }, 0);
-        }
-
-        function sumNumbers(row) {
-            return Object.values(row).reduce((sum, value) => sum + toNumber(value), 0);
+            // Returns the last non-zero number, skipping ID/name/metadata columns
+            const skipPatterns = ['id', 'name', 'employee', 'emp', 'sheetname', 'manager', 'team', 'process', 'dept'];
+            let latest = 0;
+            for (const [key, value] of Object.entries(row)) {
+                const k = normalize(key);
+                if (skipPatterns.some(p => k.includes(p))) continue;
+                const n = toNumber(value);
+                if (n) latest = n;
+            }
+            return latest;
         }
 
         function toNumber(value) {
@@ -383,10 +416,12 @@
         }
 
         function renderSummary(result, fileCount) {
+            const ranked = Object.values(result.performanceData).filter(p => p.overall_score > 0).length;
             summaryEl.innerHTML = `
                 <div class="summary-card"><span>Excel Files</span><strong>${fileCount}</strong></div>
                 <div class="summary-card"><span>Employees</span><strong>${Object.keys(result.employeeMaster).length}</strong></div>
                 <div class="summary-card"><span>Scorecards</span><strong>${Object.keys(result.performanceData).length}</strong></div>
+                <div class="summary-card"><span>Ranked</span><strong>${ranked}</strong></div>
             `;
         }
 

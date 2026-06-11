@@ -131,6 +131,25 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             transition: all 0.3s ease;
             border-left: 4px solid #667eea;
+            position: relative;
+        }
+
+        .rank-badge {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .rank-badge.top3 {
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            color: #7a3a00;
         }
         
         .employee-card:hover {
@@ -268,49 +287,59 @@
             return String(value || '').replace(/\s+/g, ' ').trim();
         }
 
-        function buildEmployeeRows(rootData) {
-            const emps = rootData['employee-master'] || {};
-            const perfs = rootData['performance-data'] || {};
-            const moduleData = rootData['employee-module-data'] || {};
-            const scoreData = rootData['employee-scores'] || {};
-            const ids = new Set([
-                ...Object.keys(emps),
-                ...Object.keys(perfs),
-                ...Object.keys(moduleData),
-                ...Object.keys(scoreData)
-            ]);
+        function buildEmployeeRows(emps, perfs) {
+            const ids = new Set([...Object.keys(emps), ...Object.keys(perfs)]);
 
             return Array.from(ids).map(id => {
-                const emp = emps[id] || {};
-                const perf = perfs[id] || moduleData[id] || scoreData[id] || {};
+                const emp  = emps[id]  || {};
+                const perf = perfs[id] || {};
                 const attendance = toNumber(perf.attendance);
-                const knowledge = toNumber(perf.process_knowledge);
-                const audit = toNumber(perf.audit_score);
-                const scoreInputs = [attendance, knowledge, audit].filter(value => value > 0);
-                const calculatedScore = scoreInputs.length ? scoreInputs.reduce((sum, value) => sum + value, 0) / scoreInputs.length : 0;
+                const knowledge  = toNumber(perf.process_knowledge);
+                const audit      = toNumber(perf.audit_score);
+                const scoreInputs = [attendance, knowledge, audit].filter(v => v > 0);
+                const calculatedScore = scoreInputs.length
+                    ? scoreInputs.reduce((s, v) => s + v, 0) / scoreInputs.length
+                    : 0;
 
                 return {
                     id,
-                    name: emp.name || perf.name || id,
-                    team: normalizeTeamName(emp.team || perf.team) || 'Unassigned',
-                    manager: emp.manager || perf.manager || '',
+                    name:             emp.name  || perf.name  || id,
+                    team:             normalizeTeamName(emp.team || perf.team) || 'Unassigned',
+                    manager:          emp.manager || perf.manager || '',
                     attendance,
                     process_knowledge: knowledge,
-                    productivity: toNumber(perf.productivity),
-                    overall_score: toNumber(perf.overall_score) || calculatedScore,
-                    lastUpdated: perf.lastUpdated || emp.lastUpdated || ''
+                    productivity:     toNumber(perf.productivity),
+                    overall_score:    toNumber(perf.overall_score) || calculatedScore,
+                    rank:             toNumber(perf.rank) || toNumber(emp.rank) || 0,
+                    lastUpdated:      perf.lastUpdated || emp.lastUpdated || ''
                 };
-            }).sort((a, b) => a.name.localeCompare(b.name));
+            }).sort((a, b) => (a.rank || 9999) - (b.rank || 9999));
         }
 
         function loadData() {
-            db.ref('/').off('value');
-            db.ref('/').on('value', snap => {
-                allEmployees = buildEmployeeRows(snap.val() || {});
+            db.ref('employee-master').off('value');
+            db.ref('performance-data').off('value');
+
+            // Read both paths once, then combine
+            Promise.all([
+                db.ref('employee-master').once('value'),
+                db.ref('performance-data').once('value')
+            ]).then(([empSnap, perfSnap]) => {
+                allEmployees = buildEmployeeRows(empSnap.val() || {}, perfSnap.val() || {});
                 populateTeamFilter(allEmployees);
                 renderTeams();
-            }, error => {
-                document.getElementById('content').innerHTML = `<div class="empty"><p>Unable to load Firebase data: ${error.message}</p></div>`;
+
+                // Keep live updates
+                db.ref('performance-data').on('value', snap => {
+                    db.ref('employee-master').once('value').then(empSnap2 => {
+                        allEmployees = buildEmployeeRows(empSnap2.val() || {}, snap.val() || {});
+                        populateTeamFilter(allEmployees);
+                        renderTeams();
+                    });
+                });
+            }).catch(error => {
+                document.getElementById('content').innerHTML =
+                    `<div class="empty"><p>Unable to load Firebase data: ${error.message}</p></div>`;
             });
         }
 
@@ -364,12 +393,15 @@
                 `;
                 
                 teams[team].forEach(emp => {
-                    const score = emp.overall_score || 0;
+                    const score     = emp.overall_score || 0;
+                    const rankLabel = emp.rank ? `#${emp.rank}` : '';
+                    const rankClass = emp.rank && emp.rank <= 3 ? 'rank-badge top3' : 'rank-badge';
                     html += `
                         <div class="employee-card">
-                            <div class="employee-name">${emp.name}</div>
-                            <div class="employee-id">ID: ${emp.id}</div>
-                            
+                            ${rankLabel ? `<span class="${rankClass}">${rankLabel}</span>` : ''}
+                            <div class="employee-name">${escapeHtml(emp.name)}</div>
+                            <div class="employee-id">ID: ${escapeHtml(emp.id)}</div>
+
                             <div class="score-line">
                                 <span class="score-label">Overall Score</span>
                                 <span class="score-value">${score.toFixed(1)}%</span>
@@ -377,12 +409,12 @@
                             <div class="score-bar">
                                 <div class="score-bar-fill" style="width: ${Math.min(score, 100)}%"></div>
                             </div>
-                            
+
                             <div class="score-line">
                                 <span class="score-label">Attendance</span>
                                 <span class="score-value">${emp.attendance.toFixed(1)}%</span>
                             </div>
-                            
+
                             <div class="score-line">
                                 <span class="score-label">Process Knowledge</span>
                                 <span class="score-value">${emp.process_knowledge.toFixed(1)}%</span>
