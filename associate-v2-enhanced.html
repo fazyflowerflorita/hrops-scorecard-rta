@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Associate Scorecard - HR Operations</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+        
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+            font-weight: 600;
+            transition: opacity 0.3s;
+        }
+        
+        .navbar a:hover {
+            opacity: 0.7;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 700px;
+            margin-top: 80px;
+        }
+        
+        .search-box {
+            background: white;
+            border-radius: 12px;
+            padding: 50px 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .search-box h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .search-box p {
+            color: #999;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .search-button {
+            flex: 1;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .search-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .search-button:active {
+            transform: translateY(0);
+        }
+        
+        .scorecard {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: none;
+        }
+        
+        .scorecard.active {
+            display: block;
+        }
+        
+        .scorecard-header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .employee-name {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .employee-id {
+            color: #999;
+            font-size: 13px;
+        }
+        
+        .export-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #f0f0f0;
+        }
+        
+        .export-btn {
+            flex: 1;
+            padding: 10px 14px;
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .export-btn:hover {
+            background: #e0e0e0;
+        }
+        
+        .metric {
+            margin-bottom: 25px;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .metric-bar {
+            width: 100%;
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        
+        .metric-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        
+        .back-button {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+        
+        .back-button:hover {
+            color: #764ba2;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+
+        .scorecard-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+            margin-top: 24px;
+        }
+
+        .mini-scorecard {
+            background: white;
+            border-radius: 10px;
+            padding: 18px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.16);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .mini-scorecard:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+        }
+
+        .mini-scorecard strong {
+            color: #333;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .mini-scorecard span {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .mini-scorecard .mini-score {
+            color: #667eea;
+            font-size: 24px;
+            font-weight: 700;
+            margin-top: 12px;
+        }
+
+        .badge-score {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        .badge-good {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-warn {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-bad {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-message {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 14px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            display: none;
+            z-index: 999;
+            animation: slideIn 0.3s ease;
+        }
+
+        .status-message.show {
+            display: block;
+        }
+
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @media (max-width: 600px) {
+            .search-box {
+                padding: 30px 20px;
+            }
+            
+            .search-box h1 {
+                font-size: 24px;
+            }
+            
+            .scorecard {
+                padding: 25px;
+            }
+            
+            .employee-name {
+                font-size: 22px;
+            }
+            
+            .export-buttons {
+                flex-direction: column;
+            }
+            
+            .export-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div>👤 My Scorecard</div>
+        <div>
+            <a href="index.html">← Home</a>
+            <a href="manager.html">Manager</a>
+            <a href="admin.html">Admin</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Search Section -->
+        <div class="search-box" id="searchSection">
+            <h1>👤 My Scorecard</h1>
+            <p>Enter your Employee ID to view your performance scorecard</p>
+            <input 
+                type="text" 
+                class="search-input" 
+                id="employeeId" 
+                placeholder="e.g., P11561"
+                onkeyup="if(event.key === 'Enter') searchEmployee()"
+            />
+            <div class="button-group">
+                <button class="search-button" onclick="searchEmployee()">🔍 Search</button>
+            </div>
+            <div id="status" class="status"></div>
+        </div>
+        
+        <!-- Scorecard Display -->
+        <div class="scorecard" id="scorecard">
+            <a href="javascript:goBack()" class="back-button">← Search Again</a>
+            
+            <div class="scorecard-header">
+                <div class="employee-name" id="displayName"></div>
+                <div class="employee-id" id="displayId"></div>
+            </div>
+            
+            <div class="metric">
+                <div class="metric-label">Overall Score</div>
+                <div style="display: flex; align-items: baseline; gap: 12px;">
+                    <div class="metric-value" id="scoreOverall">-</div>
+                    <span id="scoreBadge" class="badge-score"></span>
+                </div>
+                <div class="metric-bar">
+                    <div class="metric-bar-fill" id="barOverall" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div class="metric">
+                <div class="metric-label">Attendance</div>
+                <div class="metric-value" id="scoreAttendance">-</div>
+                <div class="metric-bar">
+                    <div class="metric-bar-fill" id="barAttendance" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div class="metric">
+                <div class="metric-label">Process Knowledge</div>
+                <div class="metric-value" id="scoreKnowledge">-</div>
+                <div class="metric-bar">
+                    <div class="metric-bar-fill" id="barKnowledge" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div class="metric">
+                <div class="metric-label">Quality / Audit Score</div>
+                <div class="metric-value" id="scoreQuality">-</div>
+                <div class="metric-bar">
+                    <div class="metric-bar-fill" id="barQuality" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div class="metric">
+                <div class="metric-label">Productivity / Target Achievement</div>
+                <div class="metric-value" id="scoreProductivity">-</div>
+            </div>
+
+            <div class="export-buttons">
+                <button class="export-btn" onclick="downloadScorecardPDF()">📄 Download PDF</button>
+                <button class="export-btn" onclick="downloadScorecardExcel()">📥 Download Excel</button>
+            </div>
+        </div>
+
+        <div id="allScorecards" class="scorecard-list"></div>
+    </div>
+    
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyD_ToRRVy18YjH_V0M67DZ9Pd6LcSqDQqg",
+            authDomain: "hrops-scorecard---rta.firebaseapp.com",
+            projectId: "hrops-scorecard---rta",
+            databaseURL: "https://hrops-scorecard---rta-default-rtdb.firebaseio.com",
+            storageBucket: "hrops-scorecard---rta.firebasestorage.app",
+            messagingSenderId: "127519107306",
+            appId: "1:127519107306:web:61683e0eb03874b0a94f93",
+            measurementId: "G-K5H5SV6QQE"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        
+        let allEmployees = [];
+        let currentEmployee = null;
+        
+        function toNumber(value) {
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function buildEmployeeRows(rootData) {
+            const emps = rootData['employee-master'] || {};
+            const perfs = rootData['performance-data'] || {};
+            const moduleData = rootData['employee-module-data'] || {};
+            const scoreData = rootData['employee-scores'] || {};
+            const ids = new Set([
+                ...Object.keys(emps),
+                ...Object.keys(perfs),
+                ...Object.keys(moduleData),
+                ...Object.keys(scoreData)
+            ]);
+
+            return Array.from(ids).map(id => {
+                const emp = emps[id] || {};
+                const perf = perfs[id] || moduleData[id] || scoreData[id] || {};
+                const attendance = toNumber(perf.attendance);
+                const knowledge = toNumber(perf.process_knowledge);
+                const quality = toNumber(perf.quality_score || perf.audit_score);
+                const scoreInputs = [attendance, knowledge, quality].filter(value => value > 0);
+                const calculatedScore = scoreInputs.length ? scoreInputs.reduce((sum, value) => sum + value, 0) / scoreInputs.length : 0;
+
+                return {
+                    id,
+                    name: emp.name || perf.name || id,
+                    team: emp.team || perf.team || 'Unassigned',
+                    attendance,
+                    process_knowledge: knowledge,
+                    quality_score: quality,
+                    productivity: toNumber(perf.productivity || perf.target_achievement),
+                    overall_score: toNumber(perf.overall_score) || calculatedScore
+                };
+            });
+        }
+
+        function loadEmployees() {
+            db.ref('/').off('value');
+            db.ref('/').on('value', snap => {
+                allEmployees = buildEmployeeRows(snap.val() || {});
+                renderAllScorecards();
+                if (document.getElementById('scorecard').classList.contains('active')) {
+                    searchEmployee(true);
+                }
+            }, error => {
+                showStatus(`Unable to load Firebase data: ${error.message}`, 'error');
+            });
+        }
+
+        function getScoreBadge(score) {
+            if (score >= 85) return { class: 'badge-good', text: '✓ Excellent' };
+            if (score >= 70) return { class: 'badge-warn', text: '⚠ Good' };
+            return { class: 'badge-bad', text: '✗ Needs Improvement' };
+        }
+
+        function searchEmployee(silent = false) {
+            const id = document.getElementById('employeeId').value.trim().toUpperCase();
+            
+            if (!id) {
+                showStatus('Please enter an Employee ID', 'error');
+                return;
+            }
+            
+            const emp = allEmployees.find(e => e.id.toUpperCase() === id);
+            
+            if (!emp) {
+                showStatus('Employee not found', 'error');
+                return;
+            }
+            
+            currentEmployee = emp;
+            const score = emp.overall_score || 0;
+            const badge = getScoreBadge(score);
+            
+            // Display scorecard
+            document.getElementById('displayName').textContent = emp.name;
+            document.getElementById('displayId').textContent = `ID: ${emp.id} | Team: ${emp.team}`;
+            document.getElementById('scoreOverall').textContent = score.toFixed(1) + '%';
+            document.getElementById('scoreBadge').textContent = badge.text;
+            document.getElementById('scoreBadge').className = `badge-score ${badge.class}`;
+            document.getElementById('scoreAttendance').textContent = emp.attendance.toFixed(1) + '%';
+            document.getElementById('scoreKnowledge').textContent = emp.process_knowledge.toFixed(1) + '%';
+            document.getElementById('scoreQuality').textContent = emp.quality_score.toFixed(1) + '%';
+            document.getElementById('scoreProductivity').textContent = emp.productivity.toFixed(1) + '%';
+            
+            document.getElementById('barOverall').style.width = Math.min(score, 100) + '%';
+            document.getElementById('barAttendance').style.width = Math.min(emp.attendance, 100) + '%';
+            document.getElementById('barKnowledge').style.width = Math.min(emp.process_knowledge, 100) + '%';
+            document.getElementById('barQuality').style.width = Math.min(emp.quality_score, 100) + '%';
+            
+            document.getElementById('searchSection').style.display = 'none';
+            document.getElementById('scorecard').classList.add('active');
+            document.getElementById('allScorecards').style.display = 'none';
+            document.getElementById('status').style.display = 'none';
+        }
+        
+        function goBack() {
+            document.getElementById('searchSection').style.display = 'block';
+            document.getElementById('scorecard').classList.remove('active');
+            document.getElementById('allScorecards').style.display = 'grid';
+            document.getElementById('employeeId').value = '';
+            currentEmployee = null;
+        }
+
+        function downloadScorecardPDF() {
+            if (!currentEmployee) {
+                showStatus('No employee selected', 'error');
+                return;
+            }
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const emp = currentEmployee;
+
+                doc.setFontSize(18);
+                doc.setTextColor(102, 126, 234);
+                doc.text('Performance Scorecard', 14, 20);
+
+                doc.setFontSize(11);
+                doc.setTextColor(51, 51, 51);
+                doc.text(`Name: ${emp.name}`, 14, 35);
+                doc.text(`Employee ID: ${emp.id}`, 14, 42);
+                doc.text(`Team: ${emp.team}`, 14, 49);
+                doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 56);
+
+                let yPos = 70;
+                const metrics = [
+                    { label: 'Overall Score', value: emp.overall_score.toFixed(1) + '%' },
+                    { label: 'Attendance', value: emp.attendance.toFixed(1) + '%' },
+                    { label: 'Process Knowledge', value: emp.process_knowledge.toFixed(1) + '%' },
+                    { label: 'Quality / Audit', value: emp.quality_score.toFixed(1) + '%' },
+                    { label: 'Productivity', value: emp.productivity.toFixed(1) + '%' }
+                ];
+
+                doc.setFontSize(12);
+                doc.setTextColor(100, 100, 100);
+                doc.text('Performance Metrics:', 14, yPos);
+                yPos += 10;
+
+                doc.setFontSize(10);
+                doc.setTextColor(51, 51, 51);
+                metrics.forEach(m => {
+                    doc.text(`${m.label}: ${m.value}`, 14, yPos);
+                    yPos += 7;
+                });
+
+                doc.save(`Scorecard_${emp.id}_${new Date().toISOString().split('T')[0]}.pdf`);
+                showStatus('✓ PDF downloaded successfully', 'success');
+            } catch (e) {
+                showStatus('Error creating PDF: ' + e.message, 'error');
+            }
+        }
+
+        function downloadScorecardExcel() {
+            if (!currentEmployee) {
+                showStatus('No employee selected', 'error');
+                return;
+            }
+
+            try {
+                const emp = currentEmployee;
+                const wsData = [
+                    ['Performance Scorecard'],
+                    [],
+                    ['Name:', emp.name],
+                    ['Employee ID:', emp.id],
+                    ['Team:', emp.team],
+                    ['Generated:', new Date().toLocaleDateString()],
+                    [],
+                    ['Metric', 'Score'],
+                    ['Overall Score', emp.overall_score.toFixed(1) + '%'],
+                    ['Attendance', emp.attendance.toFixed(1) + '%'],
+                    ['Process Knowledge', emp.process_knowledge.toFixed(1) + '%'],
+                    ['Quality / Audit', emp.quality_score.toFixed(1) + '%'],
+                    ['Productivity', emp.productivity.toFixed(1) + '%']
+                ];
+
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                ws['!cols'] = [{ wch: 20 }, { wch: 15 }];
+
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Scorecard');
+                XLSX.writeFile(wb, `Scorecard_${emp.id}_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+                showStatus('✓ Excel file downloaded successfully', 'success');
+            } catch (e) {
+                showStatus('Error creating Excel: ' + e.message, 'error');
+            }
+        }
+
+        function renderAllScorecards() {
+            const container = document.getElementById('allScorecards');
+            if (!allEmployees.length) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = allEmployees.map(emp => {
+                const score = emp.overall_score || 0;
+                const badge = getScoreBadge(score);
+                return `
+                    <div class="mini-scorecard" onclick="openEmployee('${emp.id.replace(/'/g, "\\'")}')">
+                        <strong>${emp.name}</strong>
+                        <span>ID: ${emp.id} | ${emp.team}</span>
+                        <div class="mini-score">${score.toFixed(1)}%</div>
+                        <span class="badge-score ${badge.class}">${badge.text}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openEmployee(id) {
+            document.getElementById('employeeId').value = id;
+            searchEmployee();
+        }
+        
+        function showStatus(msg, type) {
+            const statusEl = document.createElement('div');
+            statusEl.className = `status-message ${type} show`;
+            statusEl.textContent = msg;
+            document.body.appendChild(statusEl);
+            setTimeout(() => statusEl.remove(), 3500);
+        }
+        
+        loadEmployees();
+    </script>
+</body>
+</html>
