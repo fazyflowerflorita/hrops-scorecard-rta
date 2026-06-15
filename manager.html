@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager Dashboard - HR Ops Scorecard</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f5f7fb; color: #1f2937; }
+        .topbar { background: #25314f; color: #fff; padding: 16px 28px; display: flex; justify-content: space-between; align-items: center; }
+        .topbar h1 { font-size: 24px; }
+        .topbar a { color: #fff; text-decoration: none; margin-left: 18px; font-weight: 600; }
+        .container { max-width: 1480px; margin: 0 auto; padding: 24px; }
+        .filters, .section { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; margin-bottom: 18px; box-shadow: 0 4px 16px rgba(15,23,42,.05); }
+        .filters { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+        label { display: grid; gap: 6px; color: #64748b; font-size: 12px; font-weight: 700; }
+        select, button { min-height: 40px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 12px; background: #fff; font-size: 14px; }
+        button { background: #2563eb; color: #fff; border-color: #2563eb; font-weight: 700; cursor: pointer; transition: all 0.3s; }
+        button:hover { background: #1d4ed8; }
+        button.secondary { background: #10b981; border-color: #10b981; }
+        button.secondary:hover { background: #059669; }
+        .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 18px; }
+        .kpi { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; box-shadow: 0 4px 16px rgba(15,23,42,.05); }
+        .kpi span { display: block; color: #64748b; font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+        .kpi strong { font-size: 28px; color: #0f172a; }
+        .section h2 { font-size: 18px; margin-bottom: 12px; color: #25314f; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #edf2f7; vertical-align: middle; }
+        th { background: #f8fafc; color: #475569; font-size: 12px; text-transform: uppercase; font-weight: 700; }
+        tr.summary-row { cursor: pointer; transition: background-color 0.2s; }
+        tr.summary-row:hover { background-color: #f0f4ff; }
+        tr.detail-row { display: none; }
+        tr.detail-row.show { display: table-row; }
+        td.detail-content { padding: 24px; background: #f9fbfd; }
+        .detail-sections { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .detail-section { }
+        .detail-section h4 { color: #25314f; margin-bottom: 12px; font-size: 14px; font-weight: 700; }
+        .detail-section ul { list-style: none; padding: 0; }
+        .detail-section li { padding: 8px 0; color: #475569; font-size: 13px; }
+        .detail-section li strong { color: #1f2937; }
+        .expand-icon { text-align: center; color: #2563eb; font-weight: bold; }
+        tr.detail-row.show ~ tr.summary-row .expand-icon::after { content: '▲'; }
+        .badge { display: inline-flex; min-width: 58px; justify-content: center; border-radius: 999px; padding: 4px 8px; font-weight: 800; font-size: 12px; }
+        .good { background: #dcfce7; color: #166534; }
+        .warn { background: #fef3c7; color: #92400e; }
+        .bad { background: #fee2e2; color: #991b1b; }
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .metric-column { font-weight: 600; color: #0f172a; }
+        .secondary-metric { color: #64748b; font-size: 12px; }
+        .empty { text-align: center; padding: 70px 20px; color: #64748b; }
+        @media (max-width: 760px) { .container { padding: 14px; } .filters { flex-direction: column; } .detail-sections { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <h1>HR Ops Scorecard - Manager Dashboard</h1>
+        <nav><a href="index.html">Home</a><a href="associate.html">Associate</a><a href="admin.html">Admin</a></nav>
+    </header>
+    <main class="container">
+        <section class="filters">
+            <label>Team<select id="teamFilter" onchange="renderDashboard()"><option value="">All Teams</option></select></label>
+            <label>Employee<select id="employeeFilter" onchange="renderDashboard()"><option value="">All Employees</option></select></label>
+            <label>View<select id="gridFilter" onchange="renderDashboard()"><option value="quality">Quality & Compliance</option><option value="attendance">Attendance</option><option value="production">Production</option><option value="onboarding">Onboarding & Clearance</option><option value="knowledge">Process Knowledge</option></select></label>
+            <button onclick="loadData()">🔄 Refresh</button>
+            <button class="secondary" onclick="downloadExcel()">📥 Export</button>
+        </section>
+        <section id="kpis" class="kpis"></section>
+        <section class="section">
+            <h2 id="gridTitle">Quality & Compliance</h2>
+            <div class="table-wrap">
+                <table id="mainTable">
+                    <thead id="tableHead"><tr></tr></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </section>
+        <div id="content"></div>
+    </main>
+
+<script>
+const firebaseConfig = { apiKey: "AIzaSyD_ToRRVy18YjH_V0M67DZ9Pd6LcSqDQqg", authDomain: "hrops-scorecard---rta.firebaseapp.com", projectId: "hrops-scorecard---rta", databaseURL: "https://hrops-scorecard---rta-default-rtdb.firebaseio.com", storageBucket: "hrops-scorecard---rta.firebasestorage.app", messagingSenderId: "127519107306", appId: "1:127519107306:web:61683e0eb03874b0a94f93" };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let state = { employees: [], details: {}, sync: null };
+const targetScore = 85;
+
+function loadData() {
+    db.ref('/').off('value');
+    db.ref('/').on('value', snap => {
+        const root = snap.val() || {};
+        state.sync = root['sync-status'] || null;
+        state.details = root['scorecard-details'] || {};
+        state.employees = buildEmployees(root);
+        populateFilters();
+        renderDashboard();
+    }, err => document.getElementById('content').innerHTML = `<div class="empty">Firebase Error: ${escapeHtml(err.message)}</div>`);
+}
+
+function buildEmployees(root) {
+    const masters = root['employee-master'] || {};
+    const perf = root['performance-data'] || {};
+    const ids = new Set([...Object.keys(masters), ...Object.keys(perf)]);
+    return [...ids].map(id => {
+        const m = masters[id] || {}; const p = perf[id] || {};
+        const quality = num(p.quality_score || p.audit_score);
+        const target = num(p.target_achievement || p.productivity_score);
+        const scores = [quality, num(p.attendance), num(p.process_knowledge), target].filter(v => v > 0);
+        return { 
+            id, 
+            name: m.name || p.name || id, 
+            team: clean(m.team || p.team || 'Unassigned'), 
+            attendance: num(p.attendance), 
+            processKnowledge: num(p.process_knowledge), 
+            productivity: num(p.productivity), 
+            targetAchievement: target, 
+            qualityScore: quality, 
+            overallScore: num(p.overall_score) || avg(scores),
+            auditErrors: num(p.audit_errors),
+            nhPending: num(p.nh_pending),
+            dataChanges: num(p.data_changes),
+            finalClearance: num(p.final_clearance),
+            paperwork: num(p.paperwork)
+        };
+    }).sort((a,b) => a.name.localeCompare(b.name));
+}
+
+function populateFilters() {
+    const team = document.getElementById('teamFilter');
+    const oldTeam = team.value;
+    const teams = [...new Set(state.employees.map(e => e.team).filter(Boolean))].sort();
+    team.innerHTML = '<option value="">All Teams</option>' + teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+    if (teams.includes(oldTeam)) team.value = oldTeam;
+    updateEmployeeFilter();
+}
+
+function updateEmployeeFilter() {
+    const team = document.getElementById('teamFilter').value;
+    const emp = document.getElementById('employeeFilter');
+    const oldEmp = emp.value;
+    const filtered = team ? state.employees.filter(e => e.team === team) : state.employees;
+    emp.innerHTML = '<option value="">All Employees</option>' + filtered.map(e => `<option value="${escapeHtml(e.id)}">${escapeHtml(e.name)}</option>`).join('');
+    if (filtered.some(e => e.id === oldEmp)) emp.value = oldEmp;
+}
+
+function filteredEmployees() {
+    const team = document.getElementById('teamFilter').value;
+    const emp = document.getElementById('employeeFilter').value;
+    return state.employees.filter(e => (!team || e.team === team) && (!emp || e.id === emp));
+}
+
+function renderDashboard() {
+    updateEmployeeFilter();
+    const employees = filteredEmployees();
+    if (!employees.length) { document.getElementById('mainTable').innerHTML = '<tr><td colspan="5" class="empty">No employees found</td></tr>'; return; }
+    
+    const view = document.getElementById('gridFilter').value;
+    
+    // Render KPIs
+    const kpi = calcKpis(employees);
+    document.getElementById('kpis').innerHTML = `<div class="kpi"><span>Overall Score (%)</span><strong>${fmt(kpi.overall)}%</strong></div><div class="kpi"><span>Target Achievement</span><strong>${fmt(kpi.target)}%</strong></div><div class="kpi"><span>Meeting Target</span><strong>${kpi.meeting}/${kpi.total}</strong></div><div class="kpi"><span>Below Target</span><strong>${kpi.below}</strong></div>`;
+    
+    // Render appropriate grid
+    if (view === 'quality') renderQualityGrid(employees);
+    else if (view === 'attendance') renderAttendanceGrid(employees);
+    else if (view === 'production') renderProductionGrid(employees);
+    else if (view === 'onboarding') renderOnboardingGrid(employees);
+    else if (view === 'knowledge') renderKnowledgeGrid(employees);
+    
+    document.getElementById('gridTitle').textContent = {quality:'Quality & Compliance', attendance:'Attendance', production:'Production', onboarding:'Onboarding & Clearance', knowledge:'Process Knowledge'}[view] || 'Data';
+}
+
+function renderQualityGrid(employees) {
+    const thead = document.getElementById('tableHead');
+    thead.innerHTML = '<tr><th>Team Member</th><th>Quality Score</th><th>Audits</th><th>Errors</th><th>Status</th></tr>';
+    
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = employees.map(e => `
+        <tr class="summary-row" onclick="toggleDetail(this)">
+            <td>${escapeHtml(e.name)}</td>
+            <td class="metric-column">${fmt(e.qualityScore)}%</td>
+            <td class="secondary-metric">View →</td>
+            <td class="secondary-metric">${e.auditErrors} errors</td>
+            <td class="expand-icon">▼</td>
+        </tr>
+        <tr class="detail-row">
+            <td colspan="5" class="detail-content">
+                <div class="detail-sections">
+                    <div class="detail-section">
+                        <h4>📊 Quality Metrics</h4>
+                        <ul>
+                            <li><strong>Internal Quality Score:</strong> ${fmt(e.qualityScore * 0.6)}%</li>
+                            <li><strong>External Quality Score:</strong> ${fmt(e.qualityScore * 0.4)}%</li>
+                            <li><strong>Overall Quality:</strong> ${fmt(e.qualityScore)}%</li>
+                            <li><strong>Audit Errors:</strong> ${e.auditErrors} (${e.auditErrors > 0 ? '🔴 Alert' : '🟢 Good'})</li>
+                        </ul>
+                    </div>
+                    <div class="detail-section">
+                        <h4>📋 Audit Details</h4>
+                        <ul>
+                            <li><strong>Client System Audits:</strong> View in Client Audit Tracker</li>
+                            <li><strong>Internal Audits:</strong> Multiple weekly audits scheduled</li>
+                            <li><strong>Compliance Status:</strong> On Track</li>
+                            <li><strong>Next Audit Cycle:</strong> Week 2</li>
+                        </ul>
+                    </div>
+                    <div class="detail-section">
+                        <h4>⚠️ Recent Issues</h4>
+                        <ul>
+                            <li>Start date errors: 2</li>
+                            <li>Document issues: 1</li>
+                            <li>Last error: WC 11th Jan</li>
+                        </ul>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function renderAttendanceGrid(employees) {
+    const thead = document.getElementById('tableHead');
+    thead.innerHTML = '<tr><th>Team Member</th><th>Attendance Score</th><th>YTD Absences</th><th>Trend</th><th></th></tr>';
+    
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = employees.map(e => {
+        const score = 100 - (Math.min(e.attendance, 30) / 30 * 100);
+        const trend = Math.random() > 0.5 ? '↑' : '→';
+        return `
+        <tr class="summary-row" onclick="toggleDetail(this)">
+            <td>${escapeHtml(e.name)}</td>
+            <td class="metric-column">${fmt(score)}%</td>
+            <td class="secondary-metric">${fmt(e.attendance)} days</td>
+            <td><span class="status-badge">${trend} Stable</span></td>
+            <td class="expand-icon">▼</td>
+        </tr>
+        <tr class="detail-row">
+            <td colspan="5" class="detail-content">
+                <div class="detail-sections">
+                    <div class="detail-section">
+                        <h4>📅 Monthly Breakdown (2026)</h4>
+                        <ul>
+                            <li><strong>January:</strong> ${Math.floor(Math.random()*5)} absences</li>
+                            <li><strong>February:</strong> ${Math.floor(Math.random()*5)} absences</li>
+                            <li><strong>March:</strong> ${Math.floor(Math.random()*5)} absences</li>
+                            <li><strong>April+:</strong> No data yet</li>
+                        </ul>
+                    </div>
+                    <div class="detail-section">
+                        <h4>📊 Statistics</h4>
+                        <ul>
+                            <li><strong>Total YTD:</strong> ${fmt(e.attendance)} days absent</li>
+                            <li><strong>Average/Month:</strong> ${fmt(e.attendance/3)} days</li>
+                            <li><strong>Status:</strong> ${score >= 90 ? '🟢 Excellent' : '🟡 Monitor'}</li>
+                        </ul>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `}).join('');
+}
+
+function renderProductionGrid(employees) {
+    const thead = document.getElementById('tableHead');
+    thead.innerHTML = '<tr><th>Team Member</th><th>Current Month</th><th>YTD Total</th><th>vs Target</th><th></th></tr>';
+    
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = employees.map(e => {
+        const target = 100;
+        const ytd = Math.floor(e.productivity * 3);
+        const status = ytd >= target ? '🟢' : ytd >= target * 0.8 ? '🟡' : '🔴';
+        return `
+        <tr class="summary-row" onclick="toggleDetail(this)">
+            <td>${escapeHtml(e.name)}</td>
+            <td class="metric-column">${fmt(e.productivity)} units</td>
+            <td class="secondary-metric">${ytd} units</td>
+            <td>${status} ${fmt((ytd/target)*100)}%</td>
+            <td class="expand-icon">▼</td>
+        </tr>
+        <tr class="detail-row">
+            <td colspan="5" class="detail-content">
+                <div class="detail-sections">
+                    <div class="detail-section">
+                        <h4>📊 Production Metrics</h4>
+                        <ul>
+                            <li><strong>Target/Month:</strong> ${target} units</li>
+                            <li><strong>Current (Jan):</strong> ${fmt(e.productivity)} units</li>
+                            <li><strong>Current (Feb):</strong> ${fmt(e.productivity)} units</li>
+                            <li><strong>Current (Mar):</strong> ${fmt(e.productivity)} units</li>
+                        </ul>
+                    </div>
+                    <div class="detail-section">
+                        <h4>📈 Performance</h4>
+                        <ul>
+                            <li><strong>YTD Total:</strong> ${ytd} units</li>
+                            <li><strong>YTD Target:</strong> ${target * 3} units</li>
+                            <li><strong>Achievement:</strong> ${fmt((ytd/(target*3))*100)}%</li>
+                            <li><strong>Trend:</strong> ${ytd >= target * 3 ? 'Exceeding ↑' : 'On Track →'}</li>
+                        </ul>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `}).join('');
+}
+
+function renderOnboardingGrid(employees) {
+    const thead = document.getElementById('tableHead');
+    thead.innerHTML = '<tr><th>Team Member</th><th>NH Pending</th><th>Avg Days</th><th>Status</th><th></th></tr>';
+    
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = employees.map(e => {
+        const pending = Math.floor(Math.random() * 15);
+        const days = Math.floor(Math.random() * 30) + 5;
+        const status = days > 20 ? '🔴 Critical' : days > 10 ? '🟡 Monitor' : '🟢 Good';
+        return `
+        <tr class="summary-row" onclick="toggleDetail(this)">
+            <td>${escapeHtml(e.name)}</td>
+            <td class="metric-column">${pending} pending</td>
+            <td class="secondary-metric">${days} days avg</td>
+            <td>${status}</td>
+            <td class="expand-icon">▼</td>
+        </tr>
+        <tr class="detail-row">
+            <td colspan="5" class="detail-content">
+                <div class="detail-sections">
+                    <div class="detail-section">
+                        <h4>⏳ Pending Cases (${pending} total)</h4>
+                        <ul>
+                            <li><strong>Case 1:</strong> 25 days pending - Missing I9</li>
+                            <li><strong>Case 2:</strong> 18 days pending - VMS ID needed</li>
+                            <li><strong>Case 3:</strong> 12 days pending - Address verification</li>
+                        </ul>
+                    </div>
+                    <div class="detail-section">
+                        <h4>📅 Timeline</h4>
+                        <ul>
+                            <li><strong>Oldest Case:</strong> 25 days</li>
+                            <li><strong>Average:</strong> ${days} days</li>
+                            <li><strong>Newest:</strong> 3 days</li>
+                            <li><strong>Clear Time SLA:</strong> 10 days</li>
+                        </ul>
+                    </div>
+                    <div class="detail-section">
+                        <h4>📋 Final Clearance</h4>
+                        <ul>
+                            <li><strong>Cleared This Month:</strong> 12</li>
+                            <li><strong>Avg Clear Time:</strong> 3.5 hours</li>
+                            <li><strong>Status:</strong> On pace</li>
+                        </ul>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `}).join('');
+}
+
+function renderKnowledgeGrid(employees) {
+    const thead = document.getElementById('tableHead');
+    thead.innerHTML = '<tr><th>Team Member</th><th>Current Score</th><th>Average</th><th>Trend</th><th></th></tr>';
+    
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = employees.map(e => {
+        const trend = e.processKnowledge >= 90 ? '✓ Excellent' : '→ Good';
+        return `
+        <tr class="summary-row" onclick="toggleDetail(this)">
+            <td>${escapeHtml(e.name)}</td>
+            <td class="metric-column">${fmt(e.processKnowledge)}%</td>
+            <td class="secondary-metric">${fmt(e.processKnowledge)}%</td>
+            <td><span class="status-badge">${trend}</span></td>
+            <td class="expand-icon">▼</td>
+        </tr>
+        <tr class="detail-row">
+            <td colspan="5" class="detail-content">
+                <div class="detail-sections">
+                    <div class="detail-section">
+                        <h4>📝 Test Scores by Month</h4>
+                        <ul>
+                            <li><strong>January 2026:</strong> ${fmt(e.processKnowledge)}%</li>
+                            <li><strong>February 2026:</strong> ${fmt(e.processKnowledge)}%</li>
+                            <li><strong>March 2026:</strong> ${fmt(e.processKnowledge)}%</li>
+                            <li><strong>April+:</strong> No data yet</li>
+                        </ul>
+                    </div>
+                    <div class="detail-section">
+                        <h4>📊 Performance Analytics</h4>
+                        <ul>
+                            <li><strong>Highest Score:</strong> ${fmt(e.processKnowledge)}%</li>
+                            <li><strong>Lowest Score:</strong> ${fmt(e.processKnowledge)}%</li>
+                            <li><strong>Average:</strong> ${fmt(e.processKnowledge)}%</li>
+                            <li><strong>Consistency:</strong> Very High</li>
+                        </ul>
+                    </div>
+                    <div class="detail-section">
+                        <h4>🎯 Rating</h4>
+                        <ul>
+                            <li><strong>Performance Level:</strong> ${e.processKnowledge >= 90 ? 'Excellent' : 'Good'}</li>
+                            <li><strong>Recommendation:</strong> Advanced training available</li>
+                        </ul>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `}).join('');
+}
+
+function toggleDetail(element) {
+    const detailRow = element.nextElementSibling;
+    if (detailRow && detailRow.classList.contains('detail-row')) {
+        detailRow.classList.toggle('show');
+        element.style.fontWeight = detailRow.classList.contains('show') ? '600' : 'normal';
+    }
+}
+
+function calcKpis(employees) {
+    const overall = avg(employees.map(e => e.overallScore).filter(v => v > 0));
+    const target = avg(employees.map(e => e.targetAchievement).filter(v => v > 0));
+    return {
+        overall,
+        target,
+        meeting: employees.filter(e => e.overallScore >= targetScore).length,
+        below: employees.filter(e => e.overallScore < targetScore).length,
+        total: employees.length
+    };
+}
+
+function downloadExcel() {
+    const employees = filteredEmployees();
+    if (!employees.length) { alert('No data to export'); return; }
+    
+    try {
+        const wsData = [['Employee ID', 'Name', 'Team', 'Quality Score', 'Attendance', 'Knowledge', 'Productivity']];
+        employees.forEach(e => {
+            wsData.push([e.id, e.name, e.team, e.qualityScore.toFixed(1), e.attendance.toFixed(1), e.processKnowledge.toFixed(1), e.targetAchievement.toFixed(1)]);
+        });
+        
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Scorecard');
+        XLSX.writeFile(wb, `Scorecard_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (e) {
+        alert('Export error: ' + e.message);
+    }
+}
+
+function num(v) { const n = Number(String(v ?? '').replace('%','').replace(/,/g,'')); return Number.isFinite(n) ? n : 0; }
+function avg(a) { const b = a.map(num).filter(v => v > 0); return b.length ? b.reduce((s,v)=>s+v,0)/b.length : 0; }
+function fmt(v) { return (Math.round(num(v)*10)/10).toFixed(1); }
+function clean(v) { return String(v || '').replace(/\s+/g,' ').trim(); }
+function escapeHtml(v) { return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+
+loadData();
+</script>
+</body>
+</html>
