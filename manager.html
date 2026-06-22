@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manager Dashboard - HR Scorecard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0d7c6f 0%, #14a596 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: #111827;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #0d7c6f 0%, #14a596 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #6b7280;
+            font-size: 0.95rem;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        select, input {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #0d7c6f;
+            box-shadow: 0 0 0 3px rgba(13, 124, 111, 0.1);
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border-left: 4px solid #0d7c6f;
+        }
+
+        .summary-card h3 {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .summary-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0d7c6f;
+        }
+
+        .employees-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .employee-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-top: 4px solid #e5e7eb;
+        }
+
+        .employee-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .employee-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 0.5rem;
+        }
+
+        .employee-team {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 1rem;
+        }
+
+        .overall-score {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .score-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .score-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .badge-excellent { background: #10b981; }
+        .badge-good { background: #3b82f6; }
+        .badge-warning { background: #f59e0b; }
+        .badge-danger { background: #ef4444; }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .kpi-item {
+            background: #f9fafb;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+        }
+
+        .kpi-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .kpi-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0d7c6f 0%, #14a596 100%);
+            transition: width 0.3s ease;
+        }
+
+        /* MODAL STYLES */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 2rem 1rem;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 700px;
+            width: 100%;
+            margin-top: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+            color: #111827;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: #111827;
+        }
+
+        .kpi-detail {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            border-radius: 0.75rem;
+            border-left: 4px solid #0d7c6f;
+        }
+
+        .kpi-detail h3 {
+            font-size: 1rem;
+            color: #111827;
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+        }
+
+        .kpi-detail-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0d7c6f;
+            margin-bottom: 1rem;
+        }
+
+        .kpi-detail-bar {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+
+        .kpi-detail-bar .progress-bar {
+            height: 8px;
+        }
+
+        .overall-section {
+            background: linear-gradient(135deg, #0d7c6f 0%, #14a596 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .overall-section h2 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+        }
+
+        .overall-section .score {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .overall-section .status {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+
+        .no-data {
+            background: white;
+            padding: 3rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            color: #6b7280;
+        }
+
+        @media (max-width: 768px) {
+            .employees-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📊 Manager Dashboard</h1>
+            <p>Real-Time Performance Scorecard</p>
+            
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="teamFilter">Team:</label>
+                    <select id="teamFilter" onchange="filterByTeam()">
+                        <option value="">All Teams</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <button onclick="refreshData()" style="padding: 0.5rem 1rem; background: #0d7c6f; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600;">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card">
+                <h3>Total Employees</h3>
+                <div class="value" id="totalEmployees">0</div>
+            </div>
+            <div class="summary-card">
+                <h3>Avg Score</h3>
+                <div class="value" id="avgScore">0%</div>
+            </div>
+            <div class="summary-card">
+                <h3>Above Target</h3>
+                <div class="value" id="aboveTarget">0</div>
+            </div>
+            <div class="summary-card">
+                <h3>Below Target</h3>
+                <div class="value" id="belowTarget">0</div>
+            </div>
+        </div>
+
+        <!-- Employees Grid -->
+        <div id="employeesContainer" class="employees-grid"></div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modalName"></h2>
+                    <p id="modalTeam" style="color: #6b7280; margin-top: 0.5rem;"></p>
+                </div>
+                <button class="close-btn" onclick="closeModal()">✕</button>
+            </div>
+
+            <div class="overall-section">
+                <h2>Overall Score</h2>
+                <div class="score" id="modalOverallScore">0%</div>
+                <div class="status" id="modalStatus">-</div>
+            </div>
+
+            <div id="kpiDetailsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyD_ToRRVy18YjH_V0M67DZ9Pd6LcSqDQqg",
+            authDomain: "hrops-scorecard---rta.firebaseapp.com",
+            projectId: "hrops-scorecard---rta",
+            storageBucket: "hrops-scorecard---rta.firebasestorage.app",
+            messagingSenderId: "127519107306",
+            appId: "1:127519107306:web:61683e0eb03874b0a94f93",
+            databaseURL: "https://hrops-scorecard---rta.firebaseio.com"
+        };
+
+        let db;
+        let allEmployees = {};
+        let filteredEmployees = {};
+
+        try {
+            const app = firebase.initializeApp(firebaseConfig);
+            db = firebase.database(app);
+        } catch (error) {
+            console.error("Firebase error:", error);
+        }
+
+        // Load data on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
+
+        function loadData() {
+            const container = document.getElementById('employeesContainer');
+            container.innerHTML = '<div class="loading">Loading data...</div>';
+
+            db.ref('employee-module-data').once('value').then(snapshot => {
+                allEmployees = snapshot.val() || {};
+                filteredEmployees = { ...allEmployees };
+
+                if (Object.keys(allEmployees).length === 0) {
+                    container.innerHTML = '<div class="no-data">No data available. Run the Python parser to sync data.</div>';
+                    return;
+                }
+
+                // Populate team filter
+                const teams = new Set();
+                Object.values(allEmployees).forEach(emp => {
+                    if (emp.name) teams.add(emp.name.split(' ')[0]);
+                });
+
+                const teamSelect = document.getElementById('teamFilter');
+                teams.forEach(team => {
+                    const option = document.createElement('option');
+                    option.value = team;
+                    option.textContent = team;
+                    teamSelect.appendChild(option);
+                });
+
+                updateSummary();
+                displayEmployees();
+            }).catch(error => {
+                console.error("Error loading data:", error);
+                container.innerHTML = '<div class="no-data">Error loading data</div>';
+            });
+        }
+
+        function updateSummary() {
+            const employees = Object.values(filteredEmployees);
+            const total = employees.length;
+
+            // Calculate average score
+            let totalScore = 0;
+            let count = 0;
+            let aboveTarget = 0;
+            let belowTarget = 0;
+
+            employees.forEach(emp => {
+                const score = calculateOverallScore(emp);
+                if (score > 0) {
+                    totalScore += score;
+                    count++;
+                }
+                if (score >= 75) aboveTarget++;
+                else if (score < 75) belowTarget++;
+            });
+
+            const avgScore = count > 0 ? Math.round(totalScore / count) : 0;
+
+            document.getElementById('totalEmployees').textContent = total;
+            document.getElementById('avgScore').textContent = avgScore + '%';
+            document.getElementById('aboveTarget').textContent = aboveTarget;
+            document.getElementById('belowTarget').textContent = belowTarget;
+        }
+
+        function displayEmployees() {
+            const container = document.getElementById('employeesContainer');
+            container.innerHTML = '';
+
+            Object.entries(filteredEmployees).forEach(([id, emp]) => {
+                const card = createEmployeeCard(id, emp);
+                container.appendChild(card);
+            });
+        }
+
+        function createEmployeeCard(id, emp) {
+            const card = document.createElement('div');
+            card.className = 'employee-card';
+            card.onclick = () => showDetail(id, emp);
+
+            const overall = calculateOverallScore(emp);
+            const badge = getScoreBadge(overall);
+
+            card.innerHTML = `
+                <div class="employee-name">${emp.name || id}</div>
+                <div class="employee-team">${emp.module || 'Operations'}</div>
+                
+                <div class="overall-score">
+                    <div>
+                        <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.25rem;">OVERALL SCORE</div>
+                        <div class="score-value">${overall}%</div>
+                    </div>
+                    <div class="score-badge ${badge.class}">${badge.text}</div>
+                </div>
+
+                <div class="kpi-grid">
+                    ${emp.process_knowledge ? `
+                        <div class="kpi-item">
+                            <div class="kpi-label">Knowledge</div>
+                            <div class="kpi-value">${emp.process_knowledge}%</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${emp.process_knowledge}%"></div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${emp.productivity ? `
+                        <div class="kpi-item">
+                            <div class="kpi-label">Production</div>
+                            <div class="kpi-value">${emp.productivity}</div>
+                        </div>
+                    ` : ''}
+                    ${emp.attendance ? `
+                        <div class="kpi-item">
+                            <div class="kpi-label">Attendance</div>
+                            <div class="kpi-value">${emp.attendance}%</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${emp.attendance}%"></div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${emp.nh_pending ? `
+                        <div class="kpi-item">
+                            <div class="kpi-label">NH Pending</div>
+                            <div class="kpi-value">${emp.nh_pending}</div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            return card;
+        }
+
+        function calculateOverallScore(emp) {
+            let total = 0;
+            let count = 0;
+
+            if (emp.process_knowledge) {
+                total += emp.process_knowledge;
+                count++;
+            }
+            if (emp.attendance) {
+                total += emp.attendance;
+                count++;
+            }
+            if (emp.productivity && emp.productivity < 100) {
+                total += Math.min(emp.productivity, 100);
+                count++;
+            }
+
+            return count > 0 ? Math.round(total / count) : 0;
+        }
+
+        function getScoreBadge(score) {
+            if (score >= 90) return { text: 'Excellent', class: 'badge-excellent' };
+            if (score >= 75) return { text: 'Good', class: 'badge-good' };
+            if (score >= 50) return { text: 'Warning', class: 'badge-warning' };
+            return { text: 'Below Target', class: 'badge-danger' };
+        }
+
+        function showDetail(id, emp) {
+            const overall = calculateOverallScore(emp);
+            const badge = getScoreBadge(overall);
+
+            document.getElementById('modalName').textContent = emp.name || id;
+            document.getElementById('modalTeam').textContent = emp.module || 'Operations';
+            document.getElementById('modalOverallScore').textContent = overall + '%';
+            document.getElementById('modalStatus').textContent = badge.text;
+
+            let kpiHtml = '';
+
+            // Quality Score
+            if (emp.errors !== undefined) {
+                kpiHtml += `
+                    <div class="kpi-detail">
+                        <h3>⚙️ Quality Score</h3>
+                        <div class="kpi-detail-value">${100 - (emp.errors * 5)}%</div>
+                        <div class="kpi-detail-bar">
+                            <div>Errors: ${emp.errors}</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${100 - (emp.errors * 5)}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Process Knowledge
+            if (emp.process_knowledge) {
+                kpiHtml += `
+                    <div class="kpi-detail">
+                        <h3>📚 Process Knowledge</h3>
+                        <div class="kpi-detail-value">${emp.process_knowledge}%</div>
+                        <div class="kpi-detail-bar">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${emp.process_knowledge}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Productivity
+            if (emp.productivity) {
+                kpiHtml += `
+                    <div class="kpi-detail">
+                        <h3>⚡ Productivity</h3>
+                        <div class="kpi-detail-value">${emp.productivity} units</div>
+                        <p style="color: #6b7280; font-size: 0.9rem;">Total production across all months</p>
+                    </div>
+                `;
+            }
+
+            // Attendance
+            if (emp.attendance) {
+                kpiHtml += `
+                    <div class="kpi-detail">
+                        <h3>📅 Attendance</h3>
+                        <div class="kpi-detail-value">${emp.attendance}%</div>
+                        <div class="kpi-detail-bar">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${emp.attendance}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // NH Pending
+            if (emp.nh_pending !== undefined) {
+                const pendingPct = emp.nh_total ? (emp.nh_pending / emp.nh_total * 100) : 0;
+                kpiHtml += `
+                    <div class="kpi-detail">
+                        <h3>📋 NH/BG Pending</h3>
+                        <div class="kpi-detail-value">${emp.nh_pending}/${emp.nh_total || 0}</div>
+                        <p style="color: #6b7280; font-size: 0.9rem;">Pending: ${emp.nh_pending}, Completed: ${emp.nh_completed || 0}</p>
+                        <div class="kpi-detail-bar">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${100 - pendingPct}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('kpiDetailsContainer').innerHTML = kpiHtml || '<p style="color: #6b7280;">No detailed KPI data available</p>';
+
+            document.getElementById('detailModal').classList.add('active');
+        }
+
+        function closeModal(event) {
+            if (event && event.target.id !== 'detailModal') return;
+            document.getElementById('detailModal').classList.remove('active');
+        }
+
+        function filterByTeam() {
+            const selected = document.getElementById('teamFilter').value;
+            
+            if (!selected) {
+                filteredEmployees = { ...allEmployees };
+            } else {
+                filteredEmployees = {};
+                Object.entries(allEmployees).forEach(([id, emp]) => {
+                    if (emp.name && emp.name.includes(selected)) {
+                        filteredEmployees[id] = emp;
+                    }
+                });
+            }
+
+            updateSummary();
+            displayEmployees();
+        }
+
+        function refreshData() {
+            loadData();
+        }
+    </script>
+</body>
+</html>
