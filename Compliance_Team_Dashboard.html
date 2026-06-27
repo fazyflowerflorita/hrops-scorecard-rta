@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Team Scorecard Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container { max-width: 1800px; margin: 0 auto; }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            background: #e0e0e0;
+            color: #333;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .kpi-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .kpi-card h3 {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .kpi-card .value {
+            font-size: 2.5em;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .scorecard-table {
+            background: white;
+            border-radius: 10px;
+            overflow-x: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:hover { background: #f9f9f9; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+
+        .status-green {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-amber {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-red {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+            height: 400px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-box {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .summary-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .summary-item .label {
+            color: #666;
+            font-size: 0.85em;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .summary-item .number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .leaderboard {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .leaderboard-item {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .leaderboard-item:hover { background: #f9f9f9; }
+
+        .rank {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-right: 20px;
+            min-width: 40px;
+        }
+
+        .employee-info { flex-grow: 1; }
+
+        .employee-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .employee-meta {
+            font-size: 0.85em;
+            color: #999;
+        }
+
+        .score-display {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            text-align: right;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            padding: 20px;
+        }
+
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Compliance Team Scorecard</h1>
+            <p>June 2026 Monthly Performance Report</p>
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('executive')">Executive Dashboard</button>
+                <button class="tab-btn" onclick="switchTab('team')">Team Summary</button>
+                <button class="tab-btn" onclick="switchTab('employees')">Employee Details</button>
+                <button class="tab-btn" onclick="switchTab('leaderboard')">Leaderboard</button>
+                <button class="tab-btn" onclick="switchTab('analytics')">Analytics</button>
+            </div>
+        </header>
+
+        <!-- Executive Dashboard -->
+        <div id="executive" class="tab-content active">
+            <div class="kpi-cards">
+                <div class="kpi-card">
+                    <h3>Team Members</h3>
+                    <div class="value" id="totalEmployees">0</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Avg Productivity</h3>
+                    <div class="value" id="avgProductivity">0</div>
+                    <p style="color: #999; margin-top: 5px;">hours</p>
+                </div>
+                <div class="kpi-card">
+                    <h3>Avg PKT Score</h3>
+                    <div class="value" id="avgPKT">0%</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Avg Attendance</h3>
+                    <div class="value" id="avgAttendance">0%</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Total Audit Errors</h3>
+                    <div class="value" id="totalErrors">0</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Incentive Eligible</h3>
+                    <div class="value" id="incentiveCount">0</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="chart-container">
+                    <canvas id="scoreDistribution"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="metricsRadar"></canvas>
+                </div>
+            </div>
+
+            <div class="summary-box">
+                <h3>Team Performance Summary</h3>
+                <div class="summary-grid" id="performanceSummary"></div>
+            </div>
+        </div>
+
+        <!-- Team Summary -->
+        <div id="team" class="tab-content">
+            <div class="summary-box">
+                <h3>Compliance Team Key Metrics</h3>
+                <div class="metrics-row" id="teamMetrics"></div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="teamChart"></canvas>
+            </div>
+
+            <div class="summary-box">
+                <h3>Pending Items Summary</h3>
+                <div class="metrics-row" id="pendingMetrics"></div>
+            </div>
+        </div>
+
+        <!-- Employee Details -->
+        <div id="employees" class="tab-content">
+            <div class="scorecard-table">
+                <table id="employeeTable"></table>
+            </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div id="leaderboard" class="tab-content">
+            <div class="leaderboard" id="leaderboardContainer"></div>
+        </div>
+
+        <!-- Analytics -->
+        <div id="analytics" class="tab-content">
+            <div class="grid-2">
+                <div class="chart-container">
+                    <canvas id="productivityChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="pktChart"></canvas>
+                </div>
+            </div>
+
+            <div class="summary-box">
+                <h3>Performance Distribution</h3>
+                <div class="metrics-row" id="performanceDistribution"></div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2026 Compliance Team | Monthly Scorecard Report - June 2026</p>
+    </footer>
+
+    <script>
+        // Sample Compliance Team Data
+        const complianceData = [
+            { name: 'Sayee Nivas B', productivity: 8, pkt: 92, attendance: 95, errors: 1, nh_pending: 0, audit_pending: 0, score: 88.75, rating: 'Good' },
+            { name: 'Alan Benjamin', productivity: 8, pkt: 88, attendance: 92, errors: 2, nh_pending: 0, audit_pending: 5, score: 82, rating: 'Good' },
+            { name: 'Pavithra M', productivity: 8, pkt: 90, attendance: 94, errors: 0, nh_pending: 2, audit_pending: 0, score: 87, rating: 'Good' },
+            { name: 'Latha J', productivity: 7.5, pkt: 85, attendance: 90, errors: 3, nh_pending: 0, audit_pending: 0, score: 78.75, rating: 'Amber' },
+            { name: 'Sneha Thomas', productivity: 8, pkt: 91, attendance: 96, errors: 1, nh_pending: 0, audit_pending: 0, score: 89, rating: 'Good' },
+            { name: 'Azhar Taj', productivity: 7.8, pkt: 87, attendance: 91, errors: 2, nh_pending: 1, audit_pending: 0, score: 80.5, rating: 'Good' },
+            { name: 'Rathina Sudhan K', productivity: 8, pkt: 93, attendance: 97, errors: 0, nh_pending: 0, audit_pending: 0, score: 91, rating: 'Excellent' }
+        ];
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function renderExecutiveDashboard() {
+            const total = complianceData.length;
+            const avgProd = (complianceData.reduce((sum, e) => sum + e.productivity, 0) / total).toFixed(1);
+            const avgPKT = Math.round(complianceData.reduce((sum, e) => sum + e.pkt, 0) / total);
+            const avgAtt = Math.round(complianceData.reduce((sum, e) => sum + e.attendance, 0) / total);
+            const totalErr = complianceData.reduce((sum, e) => sum + e.errors, 0);
+            const incentiveEligible = complianceData.filter(e => e.nh_pending === 0 && e.audit_pending === 0).length;
+
+            document.getElementById('totalEmployees').textContent = total;
+            document.getElementById('avgProductivity').textContent = avgProd;
+            document.getElementById('avgPKT').textContent = avgPKT + '%';
+            document.getElementById('avgAttendance').textContent = avgAtt + '%';
+            document.getElementById('totalErrors').textContent = totalErr;
+            document.getElementById('incentiveCount').textContent = incentiveEligible;
+
+            // Charts
+            renderScoreDistribution();
+            renderMetricsRadar();
+            renderPerformanceSummary();
+        }
+
+        function renderScoreDistribution() {
+            const ctx = document.getElementById('scoreDistribution').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: complianceData.map(e => e.name.split(' ')[0]),
+                    datasets: [{
+                        label: 'Overall Score',
+                        data: complianceData.map(e => e.score),
+                        backgroundColor: complianceData.map(e => {
+                            if (e.rating === 'Excellent') return '#10b981';
+                            if (e.rating === 'Good') return '#3b82f6';
+                            return '#f59e0b';
+                        })
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { title: { display: true, text: 'Compliance Team Score Distribution' } }
+                }
+            });
+        }
+
+        function renderMetricsRadar() {
+            const ctx = document.getElementById('metricsRadar').getContext('2d');
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Productivity', 'PKT', 'Attendance', 'Quality', 'Compliance'],
+                    datasets: [{
+                        label: 'Average Performance',
+                        data: [88, 90, 94, 92, 85],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { title: { display: true, text: 'Performance Metrics' } }
+                }
+            });
+        }
+
+        function renderPerformanceSummary() {
+            const excellent = complianceData.filter(e => e.rating === 'Excellent').length;
+            const good = complianceData.filter(e => e.rating === 'Good').length;
+            const amber = complianceData.filter(e => e.rating === 'Amber').length;
+
+            const html = `
+                <div class="summary-item">
+                    <div class="label">Excellent Performers</div>
+                    <div class="number">${excellent}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Good Performers</div>
+                    <div class="number">${good}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Needs Improvement</div>
+                    <div class="number">${amber}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Avg Overall Score</div>
+                    <div class="number">${Math.round(complianceData.reduce((sum, e) => sum + e.score, 0) / complianceData.length)}%</div>
+                </div>
+            `;
+            document.getElementById('performanceSummary').innerHTML = html;
+        }
+
+        function renderTeamSummary() {
+            const totalNH = complianceData.reduce((sum, e) => sum + e.nh_pending, 0);
+            const totalAudit = complianceData.reduce((sum, e) => sum + e.audit_pending, 0);
+
+            const teamMetricsHtml = `
+                <div class="metric-card">
+                    <div class="metric-label">Team Productivity</div>
+                    <div class="metric-value">${(complianceData.reduce((sum, e) => sum + e.productivity, 0) / complianceData.length).toFixed(1)} hrs</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Team PKT Average</div>
+                    <div class="metric-value">${Math.round(complianceData.reduce((sum, e) => sum + e.pkt, 0) / complianceData.length)}%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Team Attendance</div>
+                    <div class="metric-value">${Math.round(complianceData.reduce((sum, e) => sum + e.attendance, 0) / complianceData.length)}%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Audit Errors (Month)</div>
+                    <div class="metric-value">${complianceData.reduce((sum, e) => sum + e.errors, 0)}</div>
+                </div>
+            `;
+            document.getElementById('teamMetrics').innerHTML = teamMetricsHtml;
+
+            const pendingHtml = `
+                <div class="metric-card">
+                    <div class="metric-label">Total NH Pending</div>
+                    <div class="metric-value">${totalNH}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Total Audit Pending</div>
+                    <div class="metric-value">${totalAudit}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Zero Pending Count</div>
+                    <div class="metric-value">${complianceData.filter(e => e.nh_pending === 0 && e.audit_pending === 0).length}</div>
+                </div>
+            `;
+            document.getElementById('pendingMetrics').innerHTML = pendingHtml;
+
+            renderTeamChart();
+        }
+
+        function renderTeamChart() {
+            const ctx = document.getElementById('teamChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Productivity', 'PKT', 'Attendance'],
+                    datasets: [{
+                        label: 'Team Performance',
+                        data: [
+                            (complianceData.reduce((s, e) => s + e.productivity, 0) / complianceData.length * 12.5),
+                            Math.round(complianceData.reduce((s, e) => s + e.pkt, 0) / complianceData.length),
+                            Math.round(complianceData.reduce((s, e) => s + e.attendance, 0) / complianceData.length)
+                        ],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { title: { display: true, text: 'Team Performance Trend' } }
+                }
+            });
+        }
+
+        function renderEmployeeDetails() {
+            let html = `
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Productivity</th>
+                    <th>PKT Score</th>
+                    <th>Attendance</th>
+                    <th>Errors</th>
+                    <th>NH Pending</th>
+                    <th>Audit Pending</th>
+                    <th>Overall Score</th>
+                    <th>Status</th>
+                    <th>Remarks</th>
+                </tr>
+            `;
+
+            complianceData.forEach(emp => {
+                const statusClass = emp.rating === 'Excellent' ? 'green' : emp.rating === 'Good' ? 'blue' : 'amber';
+                const remarkClass = emp.nh_pending === 0 && emp.audit_pending === 0 ? 'green' : 'red';
+                const remark = emp.nh_pending === 0 && emp.audit_pending === 0 ? 'Eligible' : 'Not Eligible';
+
+                html += `
+                    <tr>
+                        <td><strong>${emp.name}</strong></td>
+                        <td><span class="status-badge status-${statusClass}">${emp.productivity} hrs</span></td>
+                        <td><span class="status-badge status-${emp.pkt >= 90 ? 'green' : emp.pkt >= 80 ? 'amber' : 'red'}">${emp.pkt}%</span></td>
+                        <td><span class="status-badge status-${emp.attendance >= 95 ? 'green' : emp.attendance >= 90 ? 'amber' : 'red'}">${emp.attendance}%</span></td>
+                        <td><span class="status-badge status-${emp.errors === 0 ? 'green' : emp.errors <= 2 ? 'amber' : 'red'}">${emp.errors}</span></td>
+                        <td>${emp.nh_pending}</td>
+                        <td>${emp.audit_pending}</td>
+                        <td><strong>${emp.score}%</strong></td>
+                        <td><span class="status-badge status-${statusClass}">${emp.rating}</span></td>
+                        <td><span class="status-badge status-${remarkClass}">${remark}</span></td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('employeeTable').innerHTML = html;
+        }
+
+        function renderLeaderboard() {
+            const sorted = [...complianceData].sort((a, b) => b.score - a.score);
+            let html = '';
+
+            sorted.forEach((emp, idx) => {
+                html += `
+                    <div class="leaderboard-item">
+                        <div class="rank">#${idx + 1}</div>
+                        <div class="employee-info">
+                            <div class="employee-name">${emp.name}</div>
+                            <div class="employee-meta">${emp.rating} • ${emp.nh_pending === 0 && emp.audit_pending === 0 ? 'Eligible' : 'Not Eligible'}</div>
+                        </div>
+                        <div class="score-display">${emp.score}%</div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('leaderboardContainer').innerHTML = html;
+        }
+
+        function renderAnalytics() {
+            // Productivity Chart
+            const prodCtx = document.getElementById('productivityChart').getContext('2d');
+            new Chart(prodCtx, {
+                type: 'bar',
+                data: {
+                    labels: complianceData.map(e => e.name.split(' ')[0]),
+                    datasets: [{
+                        label: 'Productivity Hours',
+                        data: complianceData.map(e => e.productivity),
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Productivity Analysis' } } }
+            });
+
+            // PKT Chart
+            const pktCtx = document.getElementById('pktChart').getContext('2d');
+            new Chart(pktCtx, {
+                type: 'bar',
+                data: {
+                    labels: complianceData.map(e => e.name.split(' ')[0]),
+                    datasets: [{
+                        label: 'PKT Score',
+                        data: complianceData.map(e => e.pkt),
+                        backgroundColor: '#764ba2'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'PKT Score Analysis' } } }
+            });
+
+            // Distribution
+            const excellent = complianceData.filter(e => e.score >= 90).length;
+            const good = complianceData.filter(e => e.score >= 80 && e.score < 90).length;
+            const needsImprovement = complianceData.filter(e => e.score < 80).length;
+
+            const distHtml = `
+                <div class="summary-item">
+                    <div class="label">Excellent (≥90%)</div>
+                    <div class="number">${excellent}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Good (80-89%)</div>
+                    <div class="number">${good}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Needs Improvement (<80%)</div>
+                    <div class="number">${needsImprovement}</div>
+                </div>
+            `;
+            document.getElementById('performanceDistribution').innerHTML = distHtml;
+        }
+
+        window.addEventListener('load', () => {
+            renderExecutiveDashboard();
+            renderTeamSummary();
+            renderEmployeeDetails();
+            renderLeaderboard();
+            renderAnalytics();
+        });
+    </script>
+</body>
+</html>
