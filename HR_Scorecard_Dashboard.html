@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Operations Scorecard Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            background: #e0e0e0;
+            color: #333;
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .kpi-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .kpi-card h3 {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .kpi-card .value {
+            font-size: 2.5em;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .kpi-card .unit {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        .scorecard-table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:hover {
+            background: #f9f9f9;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+
+        .status-green {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-amber {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-red {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+            height: 400px;
+        }
+
+        .leaderboard {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .leaderboard-item {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .leaderboard-item:hover {
+            background: #f9f9f9;
+        }
+
+        .rank {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-right: 20px;
+            min-width: 30px;
+        }
+
+        .employee-info {
+            flex-grow: 1;
+        }
+
+        .employee-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .employee-meta {
+            font-size: 0.85em;
+            color: #999;
+        }
+
+        .score-display {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            text-align: right;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .attention-list {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .attention-item {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .attention-item h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .attention-item p {
+            color: #666;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .summary-box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .summary-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+
+        .summary-item .label {
+            color: #666;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+
+        .summary-item .number {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 HR Operations Scorecard</h1>
+            <p>Comprehensive Employee Performance Dashboard</p>
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+                <button class="tab-btn" onclick="switchTab('scorecard')">Full Scorecard</button>
+                <button class="tab-btn" onclick="switchTab('leaderboard')">Leaderboard</button>
+                <button class="tab-btn" onclick="switchTab('attention')">Needs Attention</button>
+                <button class="tab-btn" onclick="switchTab('incentive')">Incentive Eligible</button>
+                <button class="tab-btn" onclick="switchTab('analytics')">Analytics</button>
+            </div>
+        </header>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="kpi-cards" id="kpiCards"></div>
+            
+            <div class="grid-2">
+                <div class="chart-container">
+                    <canvas id="scoreDistribution"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="metricsOverview"></canvas>
+                </div>
+            </div>
+
+            <div class="summary-box">
+                <h3>Quick Summary</h3>
+                <div class="summary-grid" id="quickSummary"></div>
+            </div>
+        </div>
+
+        <!-- Full Scorecard Tab -->
+        <div id="scorecard" class="tab-content">
+            <div class="scorecard-table">
+                <table id="scorecardTable"></table>
+            </div>
+        </div>
+
+        <!-- Leaderboard Tab -->
+        <div id="leaderboard" class="tab-content">
+            <div class="leaderboard" id="leaderboardContainer"></div>
+        </div>
+
+        <!-- Attention Needed Tab -->
+        <div id="attention" class="tab-content">
+            <div class="attention-list" id="attentionList"></div>
+        </div>
+
+        <!-- Incentive Eligible Tab -->
+        <div id="incentive" class="tab-content">
+            <div class="summary-box">
+                <h3>Incentive Eligible Employees</h3>
+                <table id="incentiveTable"></table>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics" class="tab-content">
+            <div class="chart-container">
+                <canvas id="performanceTrend"></canvas>
+            </div>
+            <div class="summary-box">
+                <h3>Performance Metrics</h3>
+                <div class="summary-grid" id="performanceMetrics"></div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2026 HR Operations | Data Generated on June 27, 2026</p>
+    </footer>
+
+    <script>
+        // Sample Data - Replace with actual data from your system
+        const sampleData = [
+            {
+                'Employee Name': 'Anubha Priyam',
+                'Productivity Hours': 8,
+                'Productivity Status': 'Green',
+                'Attendance %': 95,
+                'Attendance Status': 'Green',
+                'PKT Score': 95,
+                'PKT Rating': 'Excellent',
+                'NH Pending': 0,
+                'NH Eligibility': 'Eligible for Incentive',
+                'Audit Pending': 0,
+                'Audit Eligibility': 'Eligible for Incentive',
+                'Data Changes': 5,
+                'Tenure Pending': 0,
+                'Overall Score': 93,
+                'Overall Rating': 'Excellent',
+                'Incentive Eligible': 'Eligible'
+            },
+            {
+                'Employee Name': 'Sayee Nivas B',
+                'Productivity Hours': 7.5,
+                'Productivity Status': 'Amber',
+                'Attendance %': 92,
+                'Attendance Status': 'Green',
+                'PKT Score': 88,
+                'PKT Rating': 'Good',
+                'NH Pending': 2,
+                'NH Eligibility': 'Not Eligible',
+                'Audit Pending': 0,
+                'Audit Eligibility': 'Eligible for Incentive',
+                'Data Changes': 4,
+                'Tenure Pending': 1,
+                'Overall Score': 85,
+                'Overall Rating': 'Good',
+                'Incentive Eligible': 'Not Eligible'
+            }
+            // Add more sample data as needed
+        ];
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+
+        function renderDashboard() {
+            // KPI Cards
+            const totalEmployees = sampleData.length;
+            const avgScore = (sampleData.reduce((sum, emp) => sum + emp['Overall Score'], 0) / totalEmployees).toFixed(2);
+            const excellentCount = sampleData.filter(emp => emp['Overall Rating'] === 'Excellent').length;
+            const incentiveCount = sampleData.filter(emp => emp['Incentive Eligible'] === 'Eligible').length;
+
+            const kpiHtml = `
+                <div class="kpi-card">
+                    <h3>Total Employees</h3>
+                    <div class="value">${totalEmployees}</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Average Score</h3>
+                    <div class="value">${avgScore}%</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Excellent Performers</h3>
+                    <div class="value">${excellentCount}</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Incentive Eligible</h3>
+                    <div class="value">${incentiveCount}</div>
+                </div>
+            `;
+            document.getElementById('kpiCards').innerHTML = kpiHtml;
+
+            // Charts
+            renderScoreDistributionChart();
+            renderMetricsOverviewChart();
+            renderQuickSummary();
+        }
+
+        function renderScoreDistributionChart() {
+            const ctx = document.getElementById('scoreDistribution').getContext('2d');
+            const scores = sampleData.map(emp => emp['Overall Score']);
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sampleData.map(emp => emp['Employee Name'].split(' ')[0]),
+                    datasets: [{
+                        label: 'Overall Score',
+                        data: scores,
+                        backgroundColor: scores.map(score => {
+                            if (score >= 90) return '#10b981';
+                            if (score >= 80) return '#f59e0b';
+                            return '#ef4444';
+                        })
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Score Distribution'
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderMetricsOverviewChart() {
+            const ctx = document.getElementById('metricsOverview').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Productivity', 'Attendance', 'PKT', 'Quality', 'Compliance'],
+                    datasets: [{
+                        label: 'Average Performance',
+                        data: [82, 87, 85, 80, 78],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Metrics Overview'
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderQuickSummary() {
+            const summary = `
+                <div class="summary-item">
+                    <div class="label">Avg Productivity</div>
+                    <div class="number">${(sampleData.reduce((sum, emp) => sum + emp['Productivity Hours'], 0) / sampleData.length).toFixed(1)} hrs</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Avg Attendance</div>
+                    <div class="number">${(sampleData.reduce((sum, emp) => sum + emp['Attendance %'], 0) / sampleData.length).toFixed(0)}%</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Avg PKT Score</div>
+                    <div class="number">${(sampleData.reduce((sum, emp) => sum + emp['PKT Score'], 0) / sampleData.length).toFixed(0)}%</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">NH Pending Total</div>
+                    <div class="number">${sampleData.reduce((sum, emp) => sum + emp['NH Pending'], 0)}</div>
+                </div>
+            `;
+            document.getElementById('quickSummary').innerHTML = summary;
+        }
+
+        function renderScorecardTable() {
+            let html = `
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Productivity</th>
+                    <th>Attendance %</th>
+                    <th>PKT Score</th>
+                    <th>NH Pending</th>
+                    <th>Audit Pending</th>
+                    <th>Overall Score</th>
+                    <th>Rating</th>
+                    <th>Incentive</th>
+                </tr>
+            `;
+            
+            sampleData.forEach(emp => {
+                html += `
+                    <tr>
+                        <td>${emp['Employee Name']}</td>
+                        <td><span class="status-badge status-${emp['Productivity Status'].toLowerCase()}">${emp['Productivity Hours']} hrs</span></td>
+                        <td><span class="status-badge status-${emp['Attendance Status'].toLowerCase()}">${emp['Attendance %']}%</span></td>
+                        <td><span class="status-badge status-${emp['PKT Rating'] === 'Excellent' ? 'green' : emp['PKT Rating'] === 'Good' ? 'amber' : 'red'}">${emp['PKT Score']}%</span></td>
+                        <td>${emp['NH Pending']}</td>
+                        <td>${emp['Audit Pending']}</td>
+                        <td><strong>${emp['Overall Score']}%</strong></td>
+                        <td><span class="status-badge status-${emp['Overall Rating'] === 'Excellent' ? 'green' : emp['Overall Rating'] === 'Good' ? 'amber' : 'red'}">${emp['Overall Rating']}</span></td>
+                        <td><span class="status-badge status-${emp['Incentive Eligible'] === 'Eligible' ? 'green' : 'red'}">${emp['Incentive Eligible']}</span></td>
+                    </tr>
+                `;
+            });
+            
+            document.getElementById('scorecardTable').innerHTML = html;
+        }
+
+        function renderLeaderboard() {
+            const sorted = [...sampleData].sort((a, b) => b['Overall Score'] - a['Overall Score']);
+            let html = '';
+            
+            sorted.forEach((emp, idx) => {
+                html += `
+                    <div class="leaderboard-item">
+                        <div class="rank">#${idx + 1}</div>
+                        <div class="employee-info">
+                            <div class="employee-name">${emp['Employee Name']}</div>
+                            <div class="employee-meta">${emp['Overall Rating']} • ${emp['Incentive Eligible']}</div>
+                        </div>
+                        <div class="score-display">${emp['Overall Score']}%</div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('leaderboardContainer').innerHTML = html;
+        }
+
+        function renderAttention() {
+            const attention = sampleData.filter(emp => emp['Overall Score'] < 80 || emp['NH Pending'] > 0 || emp['Audit Pending'] > 0);
+            let html = '';
+            
+            attention.forEach(emp => {
+                const issues = [];
+                if (emp['Overall Score'] < 80) issues.push(`Low Score: ${emp['Overall Score']}%`);
+                if (emp['NH Pending'] > 0) issues.push(`${emp['NH Pending']} NH Pending`);
+                if (emp['Audit Pending'] > 0) issues.push(`${emp['Audit Pending']} Audit Pending`);
+                
+                html += `
+                    <div class="attention-item">
+                        <h4>⚠️ ${emp['Employee Name']}</h4>
+                        <p>${issues.join(' | ')}</p>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('attentionList').innerHTML = html || '<div class="attention-item"><p>No issues found!</p></div>';
+        }
+
+        function renderIncentive() {
+            const eligible = sampleData.filter(emp => emp['Incentive Eligible'] === 'Eligible');
+            let html = `
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Overall Score</th>
+                    <th>Rating</th>
+                    <th>Productivity</th>
+                    <th>Attendance</th>
+                    <th>PKT Score</th>
+                </tr>
+            `;
+            
+            eligible.forEach(emp => {
+                html += `
+                    <tr>
+                        <td><strong>${emp['Employee Name']}</strong></td>
+                        <td>${emp['Overall Score']}%</td>
+                        <td><span class="status-badge status-green">${emp['Overall Rating']}</span></td>
+                        <td>${emp['Productivity Hours']} hrs</td>
+                        <td>${emp['Attendance %']}%</td>
+                        <td>${emp['PKT Score']}%</td>
+                    </tr>
+                `;
+            });
+            
+            document.getElementById('incentiveTable').innerHTML = html;
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            renderDashboard();
+            renderScorecardTable();
+            renderLeaderboard();
+            renderAttention();
+            renderIncentive();
+        });
+    </script>
+</body>
+</html>
