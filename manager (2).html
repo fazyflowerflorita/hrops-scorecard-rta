@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Operations Scorecard - Manager Dashboard</title>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        
+        header {
+            background: linear-gradient(135deg, #1b6b6b 0%, #0f4c4c 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        header h1 { font-size: 28px; margin-bottom: 5px; }
+        header p { opacity: 0.9; font-size: 14px; }
+        
+        .team-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .team-btn {
+            padding: 12px 24px;
+            background: white;
+            border: 2px solid #1b6b6b;
+            color: #1b6b6b;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .team-btn.active {
+            background: linear-gradient(135deg, #1b6b6b 0%, #0f4c4c 100%);
+            color: white;
+        }
+        
+        .team-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            overflow-x: auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        th {
+            background: #1b6b6b;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        tr:hover { background: #f9f9f9; }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 11px;
+        }
+        
+        .green { background: #d4edda; color: #155724; }
+        .amber { background: #fff3cd; color: #856404; }
+        .red { background: #f8d7da; color: #721c24; }
+        
+        .score-cell {
+            font-weight: 700;
+            color: #1b6b6b;
+        }
+        
+        .rating-cell {
+            font-weight: 600;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .metric-value {
+            font-weight: 600;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 HR Operations Scorecard</h1>
+            <p>Real-Time Performance Dashboard - Select Team</p>
+        </header>
+        
+        <div class="team-selector">
+            <button class="team-btn active" onclick="selectTeam('Compliance')">Compliance Team (7)</button>
+            <button class="team-btn" onclick="selectTeam('Final Clearance')">Final Clearance (3)</button>
+            <button class="team-btn" onclick="selectTeam('Internal Audit')">Internal Audit (2)</button>
+            <button class="team-btn" onclick="selectTeam('Paperwork Clearance')">Paperwork (3)</button>
+            <button class="team-btn" onclick="selectTeam('HR Operations')">All Teams (19)</button>
+        </div>
+        
+        <div class="table-container">
+            <table id="scoreTable">
+                <thead id="tableHeader"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyD_ToRRVy18YjH_V0M67DZ9Pd6LcSqDQqg",
+            authDomain: "hrops-scorecard---rta.firebaseapp.com",
+            projectId: "hrops-scorecard---rta",
+            databaseURL: "https://hrops-scorecard---rta-default-rtdb.firebaseio.com"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        
+        let currentTeam = 'Compliance';
+        let allScores = {};
+        
+        // Define columns for each team
+        const TEAM_COLUMNS = {
+            'Compliance': [
+                'Employee Name',
+                'Productivity Hours',
+                'Productivity Status',
+                'NH Pending Count',
+                'NH Eligibility',
+                'Audit Errors',
+                'Audit Status',
+                'PKT Score',
+                'PKT Rating',
+                'Attendance %',
+                'Client System Pending',
+                'Client System Status',
+                'Overall Score',
+                'Overall Rating',
+                'Incentive Eligible',
+                'Remarks'
+            ],
+            'Final Clearance': [
+                'Employee Name',
+                'Productivity Hours',
+                'Productivity Status',
+                'Audit Errors',
+                'Audit Status',
+                'FC Completed',
+                'SLA Compliance %',
+                'SLA Status',
+                'PKT Score',
+                'PKT Rating',
+                'Attendance %',
+                'Client System Pending',
+                'Client System Status',
+                'Overall Score',
+                'Overall Rating',
+                'Incentive Eligible',
+                'Remarks'
+            ],
+            'Internal Audit': [
+                'Employee Name',
+                'Productivity Hours',
+                'Productivity Status',
+                'NH Pending Count',
+                'NH Eligibility',
+                'NCA Errors',
+                'CA Errors',
+                'Total Errors',
+                'Error Status',
+                'PKT Score',
+                'PKT Rating',
+                'Attendance %',
+                'Client System Pending',
+                'Client System Status',
+                'Overall Score',
+                'Overall Rating',
+                'Incentive Eligible',
+                'Remarks'
+            ],
+            'Paperwork Clearance': [
+                'Employee Name',
+                'Productivity Hours',
+                'Productivity Status',
+                'NH Pending Count',
+                'NH Eligibility',
+                'Audit Errors',
+                'Audit Status',
+                'Paperwork Cleared',
+                'Paperwork SLA %',
+                'SLA Status',
+                'PKT Score',
+                'PKT Rating',
+                'Attendance %',
+                'Client System Pending',
+                'Client System Status',
+                'Overall Score',
+                'Overall Rating',
+                'Incentive Eligible',
+                'Remarks'
+            ],
+            'HR Operations': [
+                'Employee Name',
+                'Productivity Hours',
+                'PKT Score',
+                'Attendance %',
+                'Overall Score',
+                'Overall Rating',
+                'Incentive Eligible',
+                'Remarks'
+            ]
+        };
+        
+        function selectTeam(teamName) {
+            currentTeam = teamName;
+            displayTeam(teamName);
+            
+            document.querySelectorAll('.team-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+        
+        function displayTeam(teamName) {
+            const teamData = allScores[teamName] || [];
+            const columns = TEAM_COLUMNS[teamName];
+            
+            if (!teamData || teamData.length === 0) {
+                document.getElementById('tableHeader').innerHTML = '';
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="100" class="no-data">No data available. Please upload Excel files in admin dashboard.</td></tr>';
+                return;
+            }
+            
+            // Create header
+            let headerHTML = '<tr>';
+            columns.forEach(col => {
+                headerHTML += `<th>${col}</th>`;
+            });
+            headerHTML += '</tr>';
+            document.getElementById('tableHeader').innerHTML = headerHTML;
+            
+            // Create rows
+            let bodyHTML = '';
+            teamData.forEach(employee => {
+                bodyHTML += '<tr>';
+                columns.forEach(col => {
+                    let value = employee[col] || '-';
+                    let cellHTML = `<td>`;
+                    
+                    // Format based on column type
+                    if (col.includes('Status') || col.includes('Eligibility') || col.includes('Rating')) {
+                        let statusClass = '';
+                        if (value === 'Green' || value === 'Eligible' || value === 'Excellent') {
+                            statusClass = 'green';
+                        } else if (value === 'Amber' || value === 'Good') {
+                            statusClass = 'amber';
+                        } else if (value === 'Red' || value === 'Not Eligible' || value === 'Needs Improvement') {
+                            statusClass = 'red';
+                        }
+                        cellHTML += `<span class="status-badge ${statusClass}">${value}</span>`;
+                    } else if (col === 'Overall Score' || col === 'Compliance %') {
+                        cellHTML += `<span class="score-cell">${value}</span>`;
+                    } else {
+                        cellHTML += `<span class="metric-value">${value}</span>`;
+                    }
+                    
+                    cellHTML += '</td>';
+                    bodyHTML += cellHTML;
+                });
+                bodyHTML += '</tr>';
+            });
+            
+            document.getElementById('tableBody').innerHTML = bodyHTML;
+        }
+        
+        // Load data from Firebase
+        function loadData() {
+            db.ref('scorecards').on('value', snapshot => {
+                allScores = snapshot.val() || {};
+                console.log('✅ Loaded scores from Firebase:', allScores);
+                displayTeam('Compliance');
+            }, error => {
+                console.error('❌ Firebase error:', error);
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="100" class="no-data">Error loading data. Please check Firebase connection.</td></tr>';
+            });
+        }
+        
+        // Load on page load
+        window.addEventListener('load', loadData);
+    </script>
+</body>
+</html>
