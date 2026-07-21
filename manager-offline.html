@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager Dashboard - HR Scorecards</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1b3a3a 0%, #0f2f2f 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .navbar {
+            background: #1b3a3a;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .navbar h1 { font-size: 20px; }
+        
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+        
+        .nav-links a:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .nav-links a.active {
+            background: #10b981;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .team-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .team-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1b3a3a;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .employee-card {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #1b3a3a;
+        }
+        
+        .employee-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1b3a3a;
+            margin-bottom: 15px;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .metric {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid #3b82f6;
+        }
+        
+        .metric-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .metric-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .spinner {
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid #1b3a3a;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            background: white;
+            border-radius: 12px;
+            margin-top: 30px;
+        }
+        
+        .empty-state h2 {
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .empty-state p {
+            margin-bottom: 20px;
+        }
+        
+        .empty-state a {
+            color: #10b981;
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>📊 HR Operations Manager Dashboard</h1>
+        <div class="nav-links">
+            <a href="admin.html">Admin</a>
+            <a href="#" class="active">Manager</a>
+            <a href="associate.html">Associate</a>
+        </div>
+    </div>
+    
+    <div class="container" id="mainContainer">
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading scorecards...</p>
+        </div>
+    </div>
+    
+    <script>
+        function loadScorecards() {
+            const container = document.getElementById('mainContainer');
+            
+            // Get data from local storage
+            const scorecardsJSON = localStorage.getItem('scorecards');
+            
+            if (!scorecardsJSON) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h2>No Scorecards Yet</h2>
+                        <p>Please go to the Admin Dashboard to generate scorecards from Excel files</p>
+                        <a href="admin.html">→ Go to Admin Dashboard</a>
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                const data = JSON.parse(scorecardsJSON);
+                console.log('Loaded scorecards:', data);
+                displayScoreboards(data, container);
+            } catch (error) {
+                console.error('Error parsing data:', error);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h2>Error Loading Data</h2>
+                        <p>There was an error reading the scorecard data. Try generating scorecards again.</p>
+                        <a href="admin.html">→ Go to Admin Dashboard</a>
+                    </div>
+                `;
+            }
+        }
+        
+        function displayScoreboards(data, container) {
+            container.innerHTML = '';
+            
+            const teamOrder = ['Compliance', 'Final Clearance', 'Internal Audit', 'Paperwork Clearance', 'HR Operations'];
+            
+            teamOrder.forEach(teamName => {
+                if (data[teamName] && data[teamName].length > 0) {
+                    const employees = data[teamName];
+                    const section = createTeamSection(teamName, employees);
+                    container.appendChild(section);
+                }
+            });
+        }
+        
+        function createTeamSection(teamName, employees) {
+            const section = document.createElement('div');
+            section.className = 'team-section';
+            
+            const title = document.createElement('div');
+            title.className = 'team-title';
+            title.innerHTML = `👥 ${teamName} Team (${employees.length} members)`;
+            section.appendChild(title);
+            
+            employees.forEach(emp => {
+                const card = createEmployeeCard(emp);
+                section.appendChild(card);
+            });
+            
+            return section;
+        }
+        
+        function createEmployeeCard(emp) {
+            const card = document.createElement('div');
+            card.className = 'employee-card';
+            
+            const name = document.createElement('div');
+            name.className = 'employee-name';
+            name.textContent = emp['Employee Name'] || 'Unknown';
+            card.appendChild(name);
+            
+            const metricsDiv = document.createElement('div');
+            metricsDiv.className = 'metrics';
+            
+            // Add all available metrics
+            Object.keys(emp).forEach(key => {
+                if (key !== 'Employee Name') {
+                    const metricDiv = document.createElement('div');
+                    metricDiv.className = 'metric';
+                    
+                    const label = document.createElement('div');
+                    label.className = 'metric-label';
+                    label.textContent = key;
+                    metricDiv.appendChild(label);
+                    
+                    const value = document.createElement('div');
+                    value.className = 'metric-value';
+                    value.textContent = emp[key];
+                    metricDiv.appendChild(value);
+                    
+                    metricsDiv.appendChild(metricDiv);
+                }
+            });
+            
+            card.appendChild(metricsDiv);
+            return card;
+        }
+        
+        // Load data when page loads
+        window.addEventListener('load', loadScorecards);
+        
+        // Refresh every 2 seconds
+        setInterval(loadScorecards, 2000);
+    </script>
+</body>
+</html>
