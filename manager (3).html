@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Scorecard Manager Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .navbar {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .navbar h1 { font-size: 24px; color: #333; }
+        .nav-links { display: flex; gap: 15px; }
+        .nav-link {
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            background: #f0f0f0;
+            color: #333;
+            transition: all 0.3s;
+        }
+        .nav-link:hover, .nav-link.active { background: #667eea; color: white; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        h2 { color: #333; margin-bottom: 20px; font-size: 22px; }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            color: #999;
+            transition: all 0.3s;
+        }
+        .tab-btn:hover { color: #667eea; }
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .filter-label { font-size: 12px; font-weight: 600; color: #666; text-transform: uppercase; }
+        select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .kpi-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .kpi-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .kpi-label { font-size: 12px; opacity: 0.9; text-transform: uppercase; margin-bottom: 8px; }
+        .kpi-value { font-size: 32px; font-weight: bold; }
+        .kpi-subtitle { font-size: 12px; opacity: 0.8; margin-top: 8px; }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 30px;
+        }
+        .employee-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .employee-table th {
+            background: #f8f9ff;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .employee-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .employee-table tr:hover {
+            background: #f8f9ff;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-green { background: #d4edda; color: #155724; }
+        .status-amber { background: #fff3cd; color: #856404; }
+        .status-red { background: #f8d7da; color: #721c24; }
+        .eligibility-yes { background: #d4edda; color: #155724; }
+        .eligibility-no { background: #f8d7da; color: #721c24; }
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .team-card {
+            background: #f8f9ff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .team-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .team-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 13px;
+        }
+        .team-stat-label { color: #666; }
+        .team-stat-value { font-weight: 600; color: #333; }
+        .loading { text-align: center; padding: 60px 20px; color: #999; }
+        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-state a { color: #667eea; text-decoration: none; font-weight: 600; }
+        @media (max-width: 768px) {
+            .filters { flex-direction: column; }
+            .kpi-cards { grid-template-columns: 1fr 1fr; }
+            .team-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>📊 HR Scorecard Dashboard</h1>
+        <div class="nav-links">
+            <a href="admin.html" class="nav-link">Admin</a>
+            <a href="#" class="nav-link active">Dashboard</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="card">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('employee')">👤 Employee View</button>
+                <button class="tab-btn" onclick="switchTab('team')">👥 Team View</button>
+                <button class="tab-btn" onclick="switchTab('leadership')">👔 Leadership</button>
+            </div>
+            
+            <!-- EMPLOYEE TAB -->
+            <div id="employee" class="tab-content active">
+                <h2>Employee Scorecard</h2>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <label class="filter-label">Employee</label>
+                        <select id="empFilter" onchange="updateEmployee()">
+                            <option value="">-- Select Employee --</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Status</label>
+                        <select id="statusFilter" onchange="filterData()">
+                            <option value="">All</option>
+                            <option value="Green">Green</option>
+                            <option value="Amber">Amber</option>
+                            <option value="Red">Red</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="employeeView"></div>
+            </div>
+            
+            <!-- TEAM TAB -->
+            <div id="team" class="tab-content">
+                <h2>Team Performance</h2>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <label class="filter-label">Team</label>
+                        <select id="teamFilter" onchange="filterData()">
+                            <option value="">All Teams</option>
+                            <option value="Compliance">Compliance</option>
+                            <option value="Final Clearance">Final Clearance</option>
+                            <option value="Internal Audit">Internal Audit</option>
+                            <option value="Paperwork Clearance">Paperwork Clearance</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="teamView"></div>
+            </div>
+            
+            <!-- LEADERSHIP TAB -->
+            <div id="leadership" class="tab-content">
+                <h2>Leadership Executive Summary</h2>
+                
+                <div id="leadershipView"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let data = null;
+        let allEmployees = [];
+        
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Render appropriate view
+            if (tabName === 'employee') renderEmployeeView();
+            else if (tabName === 'team') renderTeamView();
+            else if (tabName === 'leadership') renderLeadershipView();
+        }
+        
+        function loadData() {
+            const stored = localStorage.getItem('hrops_scorecard_data');
+            if (!stored) {
+                renderEmpty();
+                return;
+            }
+            
+            data = JSON.parse(stored);
+            allEmployees = Object.values(data.employees || {});
+            
+            populateFilters();
+            renderEmployeeView();
+        }
+        
+        function populateFilters() {
+            const empFilter = document.getElementById('empFilter');
+            allEmployees.sort((a, b) => a.name.localeCompare(b.name)).forEach(emp => {
+                const opt = document.createElement('option');
+                opt.value = emp.id;
+                opt.textContent = `${emp.name} (${emp.team})`;
+                empFilter.appendChild(opt);
+            });
+            
+            if (allEmployees.length > 0) {
+                empFilter.value = allEmployees[0].id;
+            }
+        }
+        
+        function renderEmployeeView() {
+            const container = document.getElementById('employeeView');
+            const empId = document.getElementById('empFilter').value;
+            
+            if (!empId) {
+                container.innerHTML = '<p class="empty-state">Select an employee</p>';
+                return;
+            }
+            
+            const emp = data.employees[empId];
+            if (!emp) return;
+            
+            const kpis = emp.kpis || {};
+            const statusClass = `status-${emp.status.toLowerCase()}`;
+            const eligClass = emp.eligibility === 'Eligible' ? 'eligibility-yes' : 'eligibility-no';
+            
+            container.innerHTML = `
+                <div class="kpi-cards">
+                    <div class="kpi-card" style="background: linear-gradient(135deg, ${emp.status === 'Green' ? '#10b981' : emp.status === 'Amber' ? '#f59e0b' : '#ef4444'} 0%, ${emp.status === 'Green' ? '#059669' : emp.status === 'Amber' ? '#d97706' : '#dc2626'} 100%)">
+                        <div class="kpi-label">Overall Score</div>
+                        <div class="kpi-value">${emp.score}</div>
+                        <div class="kpi-subtitle">${emp.status}</div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-label">Productivity</div>
+                        <div class="kpi-value">${(kpis.productivity || 0).toFixed(1)}h</div>
+                        <div class="kpi-subtitle">Daily Average</div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-label">PKT Score</div>
+                        <div class="kpi-value">${(kpis.pkt || 0).toFixed(0)}</div>
+                        <div class="kpi-subtitle">Process Knowledge</div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-label">Attendance</div>
+                        <div class="kpi-value">${(kpis.attendance || 0).toFixed(0)}%</div>
+                        <div class="kpi-subtitle">Monthly Average</div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-label">Audit Quality</div>
+                        <div class="kpi-value">${(kpis.auditQuality || 0).toFixed(0)}</div>
+                        <div class="kpi-subtitle">Quality Score</div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-label">Incentive Status</div>
+                        <div class="kpi-value" style="font-size: 20px; text-transform: uppercase;">${emp.eligibility.charAt(0)}</div>
+                        <div class="kpi-subtitle">${emp.eligibility}</div>
+                    </div>
+                </div>
+                
+                <table class="employee-table" style="margin-top: 30px;">
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                        <th>Status</th>
+                    </tr>
+                    <tr>
+                        <td>NH Pending</td>
+                        <td>${kpis.nhPending || 0}</td>
+                        <td><span class="status-badge ${kpis.nhPending === 0 ? 'status-green' : 'status-red'}">${kpis.nhPending === 0 ? 'Clear' : 'Pending'}</span></td>
+                    </tr>
+                    <tr>
+                        <td>Client System Pending</td>
+                        <td>${kpis.clientPending || 0}</td>
+                        <td><span class="status-badge ${kpis.clientPending === 0 ? 'status-green' : 'status-red'}">${kpis.clientPending === 0 ? 'Clear' : 'Pending'}</span></td>
+                    </tr>
+                    <tr>
+                        <td>QMG Errors</td>
+                        <td>${kpis.qmgErrors || 0}</td>
+                        <td><span class="status-badge ${(kpis.qmgErrors || 0) < 3 ? 'status-green' : (kpis.qmgErrors || 0) < 6 ? 'status-amber' : 'status-red'}">${kpis.qmgErrors || 0} errors</span></td>
+                    </tr>
+                </table>
+            `;
+        }
+        
+        function renderTeamView() {
+            const container = document.getElementById('teamView');
+            const teamFilter = document.getElementById('teamFilter').value;
+            
+            let teams = data.teams;
+            if (teamFilter) {
+                teams = { [teamFilter]: data.teams[teamFilter] || [] };
+            }
+            
+            let html = '';
+            
+            Object.entries(teams).forEach(([teamName, members]) => {
+                if (!members || members.length === 0) return;
+                
+                const avgScore = members.reduce((sum, m) => sum + m.score, 0) / members.length;
+                const greenCount = members.filter(m => m.status === 'Green').length;
+                const eligibleCount = members.filter(m => m.eligibility === 'Eligible').length;
+                
+                html += `
+                    <div style="margin-bottom: 30px;">
+                        <h3 style="color: #333; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #667eea;">${teamName} Team (${members.length} members)</h3>
+                        
+                        <div class="kpi-cards" style="margin-bottom: 20px;">
+                            <div class="kpi-card">
+                                <div class="kpi-label">Team Avg Score</div>
+                                <div class="kpi-value">${avgScore.toFixed(0)}</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-label">Green Members</div>
+                                <div class="kpi-value">${greenCount}/${members.length}</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-label">Eligible</div>
+                                <div class="kpi-value">${eligibleCount}/${members.length}</div>
+                            </div>
+                        </div>
+                        
+                        <table class="employee-table">
+                            <tr>
+                                <th>Employee</th>
+                                <th>Score</th>
+                                <th>PKT</th>
+                                <th>Attendance</th>
+                                <th>Status</th>
+                                <th>Eligible</th>
+                            </tr>
+                            ${members.map(emp => `
+                                <tr>
+                                    <td>${emp.name}</td>
+                                    <td>${emp.score}</td>
+                                    <td>${(emp.kpis.pkt || 0).toFixed(0)}</td>
+                                    <td>${(emp.kpis.attendance || 0).toFixed(0)}%</td>
+                                    <td><span class="status-badge status-${emp.status.toLowerCase()}">${emp.status}</span></td>
+                                    <td><span class="status-badge ${emp.eligibility === 'Eligible' ? 'eligibility-yes' : 'eligibility-no'}">${emp.eligibility.charAt(0)}</span></td>
+                                </tr>
+                            `).join('')}
+                        </table>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function renderLeadershipView() {
+            const container = document.getElementById('leadershipView');
+            const summary = data.summary;
+            
+            container.innerHTML = `
+                <div class="kpi-cards">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Total Employees</div>
+                        <div class="kpi-value">${summary.totalEmployees}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Avg Score</div>
+                        <div class="kpi-value">${summary.avgScore}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Avg Productivity</div>
+                        <div class="kpi-value">${summary.avgProductivity}h</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Avg PKT</div>
+                        <div class="kpi-value">${summary.avgPKT}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Green Status</div>
+                        <div class="kpi-value">${summary.green.count}</div>
+                        <div class="kpi-subtitle">${summary.green.pct}%</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Amber Status</div>
+                        <div class="kpi-value">${summary.amber.count}</div>
+                        <div class="kpi-subtitle">${summary.amber.pct}%</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Red Status</div>
+                        <div class="kpi-value">${summary.red.count}</div>
+                        <div class="kpi-subtitle">${summary.red.pct}%</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Eligible</div>
+                        <div class="kpi-value">${summary.eligible.count}</div>
+                        <div class="kpi-subtitle">${summary.eligible.pct}%</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 40px;">
+                    <h3 style="color: #333; margin-bottom: 20px;">Team Breakdown</h3>
+                    <div class="team-grid">
+                        ${Object.entries(data.teams).map(([teamName, members]) => {
+                            if (!members || members.length === 0) return '';
+                            const avg = members.reduce((sum, m) => sum + m.score, 0) / members.length;
+                            const eligible = members.filter(m => m.eligibility === 'Eligible').length;
+                            return `
+                                <div class="team-card">
+                                    <div class="team-name">${teamName}</div>
+                                    <div class="team-stat">
+                                        <div class="team-stat-label">Members:</div>
+                                        <div class="team-stat-value">${members.length}</div>
+                                    </div>
+                                    <div class="team-stat">
+                                        <div class="team-stat-label">Avg Score:</div>
+                                        <div class="team-stat-value">${avg.toFixed(0)}</div>
+                                    </div>
+                                    <div class="team-stat">
+                                        <div class="team-stat-label">Eligible:</div>
+                                        <div class="team-stat-value">${eligible}/${members.length}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function filterData() {
+            const activeTab = document.querySelector('.tab-content.active');
+            if (activeTab.id === 'employee') renderEmployeeView();
+            else if (activeTab.id === 'team') renderTeamView();
+        }
+        
+        function updateEmployee() {
+            renderEmployeeView();
+        }
+        
+        function renderEmpty() {
+            document.getElementById('employeeView').innerHTML = `
+                <div class="empty-state">
+                    <h2>No Data Found</h2>
+                    <p>Please process Excel files in the Admin panel first</p>
+                    <a href="admin.html">→ Go to Admin</a>
+                </div>
+            `;
+        }
+        
+        // Load on page load
+        window.addEventListener('load', loadData);
+    </script>
+</body>
+</html>
