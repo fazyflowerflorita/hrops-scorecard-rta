@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Personal Scorecard - Associate Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .navbar { background: white; padding: 20px 30px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .navbar h1 { font-size: 24px; color: #333; }
+        .nav-links { display: flex; gap: 15px; }
+        .nav-link { padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600; background: #f0f0f0; color: #333; transition: all 0.3s; }
+        .nav-link:hover { background: #667eea; color: white; }
+        .nav-link.active { background: #667eea; color: white; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .card { background: white; border-radius: 12px; padding: 30px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h2 { color: #333; margin-bottom: 20px; font-size: 22px; }
+        h3 { color: #333; margin: 25px 0 15px 0; font-size: 16px; }
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-label { font-size: 11px; font-weight: 600; color: #333; text-transform: uppercase; letter-spacing: 0.5px; }
+        select, input { padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+        select:focus, input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 5px rgba(102, 126, 234, 0.3); }
+        .filter-buttons { display: flex; gap: 8px; padding-top: 5px; }
+        .btn-filter { padding: 8px 14px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; transition: all 0.3s; }
+        .btn-filter:hover { background: #764ba2; }
+        .btn-reset { padding: 8px 14px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
+        .btn-reset:hover { background: #d0d0d0; }
+        .profile-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; }
+        .profile-header h2 { color: white; margin: 0 0 10px 0; }
+        .profile-info { font-size: 14px; opacity: 0.95; }
+        .kpi-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .kpi-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; text-align: center; }
+        .kpi-card.green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .kpi-card.amber { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .kpi-card.red { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .kpi-label { font-size: 10px; opacity: 0.9; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
+        .kpi-value { font-size: 26px; font-weight: bold; }
+        .kpi-subtitle { font-size: 10px; opacity: 0.8; margin-top: 6px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .kpi-detail-card { background: #f8f9ff; border: 2px solid #e0e0e0; padding: 12px; border-radius: 8px; }
+        .kpi-detail-label { font-weight: 600; color: #333; margin-bottom: 6px; font-size: 12px; }
+        .kpi-detail-value { font-size: 20px; font-weight: bold; color: #667eea; }
+        .kpi-detail-status { font-size: 11px; color: #666; margin-top: 6px; }
+        .status-badge { display: inline-block; padding: 3px 10px; border-radius: 15px; font-size: 11px; font-weight: 600; }
+        .status-green { background: #d4edda; color: #155724; }
+        .status-amber { background: #fff3cd; color: #856404; }
+        .status-red { background: #f8d7da; color: #721c24; }
+        .status-blue { background: #d1ecf1; color: #0c5460; }
+        .eligibility-yes { background: #d4edda; color: #155724; }
+        .eligibility-no { background: #f8d7da; color: #721c24; }
+        .table-container { width: 100%; overflow-x: auto; }
+        .employee-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .employee-table th { background: #f8f9ff; padding: 10px; text-align: left; font-weight: 600; color: #333; border-bottom: 2px solid #e0e0e0; }
+        .employee-table td { padding: 10px; border-bottom: 1px solid #e0e0e0; }
+        .employee-table tr:hover { background: #f8f9ff; }
+        .filter-info { background: #d1ecf1; color: #0c5460; padding: 10px 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #17a2b8; font-size: 12px; }
+        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-state a { color: #667eea; text-decoration: none; font-weight: 600; }
+        @media (max-width: 768px) { 
+            .filters { grid-template-columns: 1fr; } 
+            .kpi-cards { grid-template-columns: 1fr 1fr; }
+            .kpi-grid { grid-template-columns: 1fr; }
+            .filter-buttons { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>👤 My Personal Scorecard</h1>
+        <div class="nav-links">
+            <a href="admin.html" class="nav-link">Admin</a>
+            <a href="manager.html" class="nav-link">Manager</a>
+            <a href="#" class="nav-link active">Associate</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="card">
+            <!-- FILTERS -->
+            <div style="margin-bottom: 20px;">
+                <h2>🔍 Date & Filter Controls</h2>
+                <div class="filters">
+                    <div class="filter-group">
+                        <label class="filter-label">📅 Year</label>
+                        <select id="yearFilter" onchange="applyFilters()">
+                            <option value="">All Years</option>
+                            <option value="2023">2023</option>
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">📆 Month</label>
+                        <select id="monthFilter" onchange="applyFilters()">
+                            <option value="">All Months</option>
+                            <option value="01">January</option>
+                            <option value="02">February</option>
+                            <option value="03">March</option>
+                            <option value="04">April</option>
+                            <option value="05">May</option>
+                            <option value="06">June</option>
+                            <option value="07">July</option>
+                            <option value="08">August</option>
+                            <option value="09">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">📍 Date From</label>
+                        <input type="date" id="dateStartFilter" onchange="applyFilters()">
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">📍 Date To</label>
+                        <input type="date" id="dateEndFilter" onchange="applyFilters()">
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 5px; padding-top: 5px;">
+                        <label class="filter-label">&nbsp;</label>
+                        <div class="filter-buttons">
+                            <button class="btn-filter" onclick="applyFilters()">🔍 Apply</button>
+                            <button class="btn-reset" onclick="resetFilters()">↺ Reset</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="filterInfo"></div>
+            </div>
+
+            <!-- PROFILE HEADER -->
+            <div id="profileHeader"></div>
+
+            <!-- SUMMARY CARDS -->
+            <div id="summaryCards"></div>
+
+            <!-- KPI GRID -->
+            <h3>📊 All Team-Specific KPIs</h3>
+            <div id="kpiGrid"></div>
+
+            <!-- DETAILED TABLE -->
+            <h3>📋 Detailed Performance Table</h3>
+            <div class="table-container">
+                <table id="kpiTable" class="employee-table">
+                    <tr>
+                        <th>KPI Name</th>
+                        <th>Value</th>
+                        <th>Status</th>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let data = null;
+        let currentEmployee = null;
+        
+        let currentFilters = {
+            year: '',
+            month: '',
+            dateStart: '',
+            dateEnd: ''
+        };
+
+        function applyFilters() {
+            currentFilters.year = document.getElementById('yearFilter').value;
+            currentFilters.month = document.getElementById('monthFilter').value;
+            currentFilters.dateStart = document.getElementById('dateStartFilter').value;
+            currentFilters.dateEnd = document.getElementById('dateEndFilter').value;
+            
+            displayFilterInfo();
+            renderDashboard();
+        }
+
+        function resetFilters() {
+            document.getElementById('yearFilter').value = '';
+            document.getElementById('monthFilter').value = '';
+            document.getElementById('dateStartFilter').value = '';
+            document.getElementById('dateEndFilter').value = '';
+            
+            currentFilters = { year: '', month: '', dateStart: '', dateEnd: '' };
+            displayFilterInfo();
+            renderDashboard();
+        }
+
+        function displayFilterInfo() {
+            const info = document.getElementById('filterInfo');
+            const parts = [];
+            
+            if (currentFilters.year) parts.push(`📅 ${currentFilters.year}`);
+            if (currentFilters.month) parts.push(`📆 ${getMonthName(currentFilters.month)}`);
+            if (currentFilters.dateStart && currentFilters.dateEnd) parts.push(`📍 ${currentFilters.dateStart} to ${currentFilters.dateEnd}`);
+            
+            if (parts.length > 0) {
+                info.innerHTML = `<div class="filter-info"><strong>Active Filters:</strong> ${parts.join(' • ')}</div>`;
+            } else {
+                info.innerHTML = '';
+            }
+        }
+
+        function getMonthName(month) {
+            const months = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            return months[parseInt(month)];
+        }
+
+        function getTeamKPIs(team) {
+            const kpiMaps = {
+                'HR Operations': ['productivity', 'nhPending', 'dataChanges', 'terminationStatus', 'tenureDiscount', 'pkt', 'attendance', 'clientPending'],
+                'Compliance': ['productivity', 'nhPending', 'internalAuditErrors', 'pkt', 'attendance', 'clientPending'],
+                'Final Clearance': ['productivity', 'internalAuditErrors', 'clearanceSLA', 'clearanceCount', 'pkt', 'attendance', 'clientPending'],
+                'Internal Audit': ['productivity', 'nhPending', 'qmgTimeline', 'qmgNCAErrors', 'qmgCAErrors', 'auditCompletion', 'pkt', 'attendance', 'clientPending'],
+                'Paperwork Clearance': ['productivity', 'nhPending', 'internalAuditErrors', 'paperworkSLA', 'allocationCompletion', 'pkt', 'attendance', 'clientPending']
+            };
+            return kpiMaps[team] || [];
+        }
+
+        function getKPIDisplay(emp, kpiName) {
+            const kpi = emp.kpis[kpiName];
+            if (kpiName === 'clearanceSLA' || kpiName === 'paperworkSLA' || kpiName === 'qmgTimeline') {
+                return `${kpi} days`;
+            } else if (kpiName === 'pkt') {
+                return `${Math.round(kpi)}`;
+            } else if (typeof kpi === 'number' && kpi < 1) {
+                return `${(kpi * 100).toFixed(2)}%`;
+            } else if (kpiName === 'attendance' || kpiName === 'auditCompletion' || kpiName === 'allocationCompletion') {
+                return `${kpi?.toFixed?.(2) || kpi}%`;
+            } else if (typeof kpi === 'number') {
+                return `${kpi.toFixed(2)}`;
+            }
+            return kpi || 'N/A';
+        }
+
+        function formatKPIName(name) {
+            if (name.toLowerCase() === 'pkt') {
+                return 'PKT';
+            }
+            return name
+                .replace(/([A-Z])/g, ' $1')
+                .trim()
+                .split(' ')
+                .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+                .join(' ');
+        }
+
+        function loadData() {
+            const stored = localStorage.getItem('hrops_scorecard_data');
+            if (!stored) {
+                renderEmpty();
+                return;
+            }
+            
+            data = JSON.parse(stored);
+            
+            // Get first employee as current associate
+            const employees = Object.values(data.employees || {});
+            if (employees.length > 0) {
+                currentEmployee = employees[0];
+                renderDashboard();
+            } else {
+                renderEmpty();
+            }
+        }
+
+        function renderDashboard() {
+            if (!currentEmployee || !data) return;
+
+            const emp = currentEmployee;
+            const teamKPIs = getTeamKPIs(emp.team);
+            const statusClass = `kpi-card ${emp.status.toLowerCase()}`;
+
+            // Profile Header
+            const profileHTML = `
+                <div class="profile-header">
+                    <h2>👤 ${emp.name}</h2>
+                    <div class="profile-info">
+                        <strong>Employee ID:</strong> ${emp.id} | 
+                        <strong>Team:</strong> ${emp.team} | 
+                        <strong>Manager:</strong> Hariharan A
+                    </div>
+                </div>
+            `;
+            document.getElementById('profileHeader').innerHTML = profileHTML;
+
+            // Summary Cards
+            const summaryHTML = `
+                <div class="kpi-cards">
+                    <div class="${statusClass}">
+                        <div class="kpi-label">Overall Score</div>
+                        <div class="kpi-value">${emp.scores.teamScore || 0}</div>
+                        <div class="kpi-subtitle">${emp.status}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Incentive Status</div>
+                        <div class="kpi-value" style="font-size: 18px;">${emp.eligibility.charAt(0)}</div>
+                        <div class="kpi-subtitle">${emp.eligibility}</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('summaryCards').innerHTML = summaryHTML;
+
+            // KPI Grid
+            let kpiGridHTML = '<div class="kpi-grid">';
+            teamKPIs.forEach(kpiName => {
+                const kpi = emp.kpis[kpiName];
+                const statusKey = kpiName + 'Status';
+                const status = emp.kpis[statusKey] || 'Blue';
+                const statusClass = `status-${status.toLowerCase()}`;
+                const display = getKPIDisplay(emp, kpiName);
+                
+                kpiGridHTML += `
+                    <div class="kpi-detail-card">
+                        <div class="kpi-detail-label">${formatKPIName(kpiName)}</div>
+                        <div class="kpi-detail-value">${display}</div>
+                        <div class="kpi-detail-status"><span class="status-badge ${statusClass}">${status}</span></div>
+                    </div>
+                `;
+            });
+            kpiGridHTML += '</div>';
+            document.getElementById('kpiGrid').innerHTML = kpiGridHTML;
+
+            // Table
+            const tableBody = document.querySelector('#kpiTable tbody') || document.getElementById('kpiTable');
+            let tableHTML = '<tr><th>KPI Name</th><th>Value</th><th>Status</th></tr>';
+            
+            teamKPIs.forEach(kpiName => {
+                const kpi = emp.kpis[kpiName];
+                const statusKey = kpiName + 'Status';
+                const status = emp.kpis[statusKey] || 'Blue';
+                const statusClass = `status-${status.toLowerCase()}`;
+                
+                tableHTML += `
+                    <tr>
+                        <td><strong>${formatKPIName(kpiName)}</strong></td>
+                        <td>${getKPIDisplay(emp, kpiName)}</td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
+                    </tr>
+                `;
+            });
+            document.getElementById('kpiTable').innerHTML = tableHTML;
+        }
+
+        function renderEmpty() {
+            document.getElementById('profileHeader').innerHTML = `
+                <div class="empty-state">
+                    <h2>No Data Found</h2>
+                    <p>Please process Excel files in the Admin panel first</p>
+                    <a href="admin.html">→ Go to Admin Panel</a>
+                </div>
+            `;
+        }
+
+        window.addEventListener('load', loadData);
+    </script>
+</body>
+</html>

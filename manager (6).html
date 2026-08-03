@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Scorecard - Associate & Manager Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .navbar { background: white; padding: 20px 30px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .navbar h1 { font-size: 24px; color: #333; }
+        .nav-links { display: flex; gap: 15px; }
+        .nav-link { padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600; background: #f0f0f0; color: #333; transition: all 0.3s; }
+        .nav-link:hover, .nav-link.active { background: #667eea; color: white; }
+        .container { max-width: 1600px; margin: 0 auto; }
+        .card { background: white; border-radius: 12px; padding: 30px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h2 { color: #333; margin-bottom: 20px; font-size: 22px; }
+        h3 { color: #333; margin: 25px 0 15px 0; font-size: 16px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 30px; border-bottom: 2px solid #e0e0e0; flex-wrap: wrap; }
+        .tab-btn { padding: 12px 20px; border: none; background: none; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: #999; transition: all 0.3s; font-size: 14px; }
+        .tab-btn:hover { color: #667eea; }
+        .tab-btn.active { color: #667eea; border-bottom-color: #667eea; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-label { font-size: 11px; font-weight: 600; color: #333; text-transform: uppercase; letter-spacing: 0.5px; }
+        select, input { padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+        select:focus, input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 5px rgba(102, 126, 234, 0.3); }
+        .filter-buttons { display: flex; gap: 8px; padding-top: 5px; }
+        .btn-filter { padding: 8px 14px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; transition: all 0.3s; }
+        .btn-filter:hover { background: #764ba2; }
+        .btn-reset { padding: 8px 14px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
+        .btn-reset:hover { background: #d0d0d0; }
+        .kpi-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .kpi-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; text-align: center; }
+        .kpi-card.green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .kpi-card.amber { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .kpi-card.red { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .kpi-label { font-size: 10px; opacity: 0.9; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
+        .kpi-value { font-size: 26px; font-weight: bold; }
+        .kpi-subtitle { font-size: 10px; opacity: 0.8; margin-top: 6px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .kpi-detail-card { background: #f8f9ff; border: 2px solid #e0e0e0; padding: 12px; border-radius: 8px; }
+        .kpi-detail-label { font-weight: 600; color: #333; margin-bottom: 6px; font-size: 12px; }
+        .kpi-detail-value { font-size: 20px; font-weight: bold; color: #667eea; }
+        .kpi-detail-status { font-size: 11px; color: #666; margin-top: 6px; }
+        .status-badge { display: inline-block; padding: 3px 10px; border-radius: 15px; font-size: 11px; font-weight: 600; }
+        .status-green { background: #d4edda; color: #155724; }
+        .status-amber { background: #fff3cd; color: #856404; }
+        .status-red { background: #f8d7da; color: #721c24; }
+        .status-blue { background: #d1ecf1; color: #0c5460; }
+        .eligibility-yes { background: #d4edda; color: #155724; }
+        .eligibility-no { background: #f8d7da; color: #721c24; }
+        .profile-header { background: #f8f9ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #667eea; }
+        .profile-header h3 { margin: 0 0 8px 0; color: #333; }
+        .profile-info { font-size: 13px; color: #666; }
+        .table-container { width: 100%; overflow-x: auto; }
+        .employee-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .employee-table th { background: #f8f9ff; padding: 10px; text-align: left; font-weight: 600; color: #333; border-bottom: 2px solid #e0e0e0; }
+        .employee-table td { padding: 10px; border-bottom: 1px solid #e0e0e0; }
+        .employee-table tr:hover { background: #f8f9ff; }
+        .team-section { margin-bottom: 30px; border-bottom: 2px solid #e0e0e0; padding-bottom: 20px; }
+        .team-section:last-child { border-bottom: none; }
+        .team-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; font-weight: 600; font-size: 14px; }
+        .filter-info { background: #d1ecf1; color: #0c5460; padding: 10px 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #17a2b8; font-size: 12px; }
+        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-state a { color: #667eea; text-decoration: none; font-weight: 600; }
+        .select-box { max-width: 350px; }
+        @media (max-width: 768px) { 
+            .filters { grid-template-columns: 1fr; } 
+            .kpi-cards { grid-template-columns: 1fr 1fr; }
+            .kpi-grid { grid-template-columns: 1fr; }
+            .filter-buttons { flex-direction: column; }
+            .tabs { gap: 5px; }
+            .tab-btn { padding: 8px 12px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>📊 HR Scorecard Dashboard</h1>
+        <div class="nav-links">
+            <a href="admin.html" class="nav-link">Admin</a>
+            <a href="#" class="nav-link active">Dashboard</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="card">
+            <!-- FILTERS SECTION -->
+            <div style="margin-bottom: 20px;">
+                <h2>🔍 Date & Filter Controls</h2>
+                <div class="filters">
+                    <div class="filter-group">
+                        <label class="filter-label">📅 Year</label>
+                        <select id="yearFilter" onchange="applyFilters()">
+                            <option value="">All Years</option>
+                            <option value="2023">2023</option>
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">📆 Month</label>
+                        <select id="monthFilter" onchange="applyFilters()">
+                            <option value="">All Months</option>
+                            <option value="01">January</option>
+                            <option value="02">February</option>
+                            <option value="03">March</option>
+                            <option value="04">April</option>
+                            <option value="05">May</option>
+                            <option value="06">June</option>
+                            <option value="07">July</option>
+                            <option value="08">August</option>
+                            <option value="09">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+
+
+
+                    <div class="filter-group">
+                        <label class="filter-label">📍 Date From</label>
+                        <input type="date" id="dateStartFilter" onchange="applyFilters()">
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">📍 Date To</label>
+                        <input type="date" id="dateEndFilter" onchange="applyFilters()">
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">👥 Team</label>
+                        <select id="teamFilterGlobal" onchange="applyFilters()">
+                            <option value="">All Teams</option>
+                            <option value="Compliance">Compliance</option>
+                            <option value="Final Clearance">Final Clearance</option>
+                            <option value="Internal Audit">Internal Audit</option>
+                            <option value="Paperwork Clearance">Paperwork Clearance</option>
+                            <option value="HR Operations">HR Operations</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">📊 Status</label>
+                        <select id="statusFilterGlobal" onchange="applyFilters()">
+                            <option value="">All Status</option>
+                            <option value="Green">🟢 Green (≥90)</option>
+                            <option value="Amber">🟡 Amber (80-89)</option>
+                            <option value="Red">🔴 Red (<80)</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">🎁 Eligibility</label>
+                        <select id="eligibilityFilter" onchange="applyFilters()">
+                            <option value="">All</option>
+                            <option value="Eligible">✅ Eligible</option>
+                            <option value="Not Eligible">❌ Not Eligible</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 5px; padding-top: 5px;">
+                        <label class="filter-label">&nbsp;</label>
+                        <div class="filter-buttons">
+                            <button class="btn-filter" onclick="applyFilters()">🔍 Apply</button>
+                            <button class="btn-reset" onclick="resetFilters()">↺ Reset</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="filterInfo"></div>
+            </div>
+
+            <!-- TABS -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('associate')">👤 My Profile (Associate)</button>
+                <button class="tab-btn" onclick="switchTab('employee')">👨‍💼 Employee View</button>
+                <button class="tab-btn" onclick="switchTab('team')">👥 Team View</button>
+                <button class="tab-btn" onclick="switchTab('leadership')">👔 Leadership</button>
+            </div>
+            
+            <!-- ASSOCIATE VIEW -->
+            <div id="associate" class="tab-content active">
+                <h2>My KPI Dashboard (Associate View)</h2>
+                <div class="select-box">
+                    <div class="filter-group">
+                        <label class="filter-label">👤 Select Your Name</label>
+                        <select id="associateFilter" onchange="updateAssociate()" style="width: 100%;">
+                            <option value="">-- Select Your Name --</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="associateView"></div>
+            </div>
+
+            <!-- EMPLOYEE VIEW (Manager) -->
+            <div id="employee" class="tab-content">
+                <h2>Employee Scorecard (Manager View)</h2>
+                <div class="select-box">
+                    <div class="filter-group">
+                        <label class="filter-label">👨‍💼 Select Employee</label>
+                        <select id="empFilter" onchange="updateEmployee()" style="width: 100%;">
+                            <option value="">-- Select Employee --</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="employeeView"></div>
+            </div>
+            
+            <!-- TEAM VIEW -->
+            <div id="team" class="tab-content">
+                <h2>Team Performance Summary</h2>
+                <div id="teamView"></div>
+            </div>
+            
+            <!-- LEADERSHIP VIEW -->
+            <div id="leadership" class="tab-content">
+                <h2>Leadership Executive Summary</h2>
+                <div id="leadershipView"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let data = null;
+        let allEmployees = [];
+        let filteredEmployees = [];
+        
+        let currentFilters = {
+            year: '',
+            month: '',
+            dateStart: '',
+            dateEnd: '',
+            team: '',
+            status: '',
+            eligibility: ''
+        };
+
+
+        
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            if (tabName === 'associate') renderAssociateView();
+            else if (tabName === 'employee') renderEmployeeView();
+            else if (tabName === 'team') renderTeamView();
+            else if (tabName === 'leadership') renderLeadershipView();
+        }
+
+        function applyFilters() {
+            currentFilters.year = document.getElementById('yearFilter').value;
+            currentFilters.month = document.getElementById('monthFilter').value;
+            currentFilters.dateStart = document.getElementById('dateStartFilter').value;
+            currentFilters.dateEnd = document.getElementById('dateEndFilter').value;
+            currentFilters.team = document.getElementById('teamFilterGlobal').value;
+            currentFilters.status = document.getElementById('statusFilterGlobal').value;
+            currentFilters.eligibility = document.getElementById('eligibilityFilter').value;
+            
+            filteredEmployees = allEmployees.filter(emp => {
+                if (currentFilters.team && emp.team !== currentFilters.team) return false;
+                if (currentFilters.status && emp.status !== currentFilters.status) return false;
+                if (currentFilters.eligibility && emp.eligibility !== currentFilters.eligibility) return false;
+                return true;
+            });
+
+            displayFilterInfo();
+            
+            const activeTab = document.querySelector('.tab-content.active').id;
+            if (activeTab === 'associate') renderAssociateView();
+            else if (activeTab === 'employee') renderEmployeeView();
+            else if (activeTab === 'team') renderTeamView();
+            else if (activeTab === 'leadership') renderLeadershipView();
+        }
+
+        function displayFilterInfo() {
+            const info = document.getElementById('filterInfo');
+            const parts = [];
+            
+            if (currentFilters.year) parts.push(`📅 ${currentFilters.year}`);
+            if (currentFilters.month) parts.push(`📆 ${getMonthName(currentFilters.month)}`);
+            if (currentFilters.dateStart && currentFilters.dateEnd) parts.push(`📍 ${currentFilters.dateStart} to ${currentFilters.dateEnd}`);
+            if (currentFilters.team) parts.push(`👥 ${currentFilters.team}`);
+            if (currentFilters.status) parts.push(`📊 ${currentFilters.status}`);
+            if (currentFilters.eligibility) parts.push(`🎁 ${currentFilters.eligibility}`);
+            
+            if (parts.length > 0) {
+                info.innerHTML = `<div class="filter-info"><strong>Active Filters:</strong> ${parts.join(' • ')} <strong>(${filteredEmployees.length}/${allEmployees.length} employees)</strong></div>`;
+            } else {
+                info.innerHTML = '';
+            }
+        }
+
+        function getMonthName(month) {
+            const months = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            return months[parseInt(month)];
+        }
+
+        function resetFilters() {
+            document.getElementById('yearFilter').value = '';
+            document.getElementById('monthFilter').value = '';
+            document.getElementById('dateStartFilter').value = '';
+            document.getElementById('dateEndFilter').value = '';
+            document.getElementById('teamFilterGlobal').value = '';
+            document.getElementById('statusFilterGlobal').value = '';
+            document.getElementById('eligibilityFilter').value = '';
+            
+            currentFilters = { year: '', month: '', dateStart: '', dateEnd: '', team: '', status: '', eligibility: '' };
+            filteredEmployees = [...allEmployees];
+            displayFilterInfo();
+            
+            const activeTab = document.querySelector('.tab-content.active').id;
+            if (activeTab === 'associate') renderAssociateView();
+            else if (activeTab === 'employee') renderEmployeeView();
+            else if (activeTab === 'team') renderTeamView();
+            else if (activeTab === 'leadership') renderLeadershipView();
+        }
+        
+        function loadData() {
+            const stored = localStorage.getItem('hrops_scorecard_data');
+            if (!stored) {
+                renderEmpty();
+                return;
+            }
+            
+            data = JSON.parse(stored);
+            allEmployees = Object.values(data.employees || {});
+            filteredEmployees = [...allEmployees];
+            
+            populateFilters();
+        }
+        
+        function populateFilters() {
+            const empFilter = document.getElementById('empFilter');
+            const associateFilter = document.getElementById('associateFilter');
+            
+            allEmployees.sort((a, b) => a.name.localeCompare(b.name)).forEach(emp => {
+                const opt1 = document.createElement('option');
+                opt1.value = emp.id;
+                opt1.textContent = `${emp.name} (${emp.team})`;
+                empFilter.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = emp.id;
+                opt2.textContent = `${emp.name} (${emp.team})`;
+                associateFilter.appendChild(opt2);
+            });
+            
+            if (allEmployees.length > 0) {
+                empFilter.value = allEmployees[0].id;
+                associateFilter.value = allEmployees[0].id;
+            }
+        }
+
+        function getTeamKPIs(team) {
+            const kpiMaps = {
+                'HR Operations': ['productivity', 'nhPending', 'dataChanges', 'terminationStatus', 'tenureDiscount', 'pkt', 'attendance', 'clientPending'],
+                'Compliance': ['productivity', 'nhPending', 'internalAuditErrors', 'pkt', 'attendance', 'clientPending'],
+                'Final Clearance': ['productivity', 'internalAuditErrors', 'clearanceSLA', 'clearanceCount', 'pkt', 'attendance', 'clientPending'],
+                'Internal Audit': ['productivity', 'nhPending', 'qmgTimeline', 'qmgNCAErrors', 'qmgCAErrors', 'auditCompletion', 'pkt', 'attendance', 'clientPending'],
+                'Paperwork Clearance': ['productivity', 'nhPending', 'internalAuditErrors', 'paperworkSLA', 'allocationCompletion', 'pkt', 'attendance', 'clientPending']
+            };
+            return kpiMaps[team] || [];
+        }
+
+        function getKPIDisplay(emp, kpiName) {
+            const kpi = emp.kpis[kpiName];
+            if (kpiName === 'clearanceSLA' || kpiName === 'paperworkSLA' || kpiName === 'qmgTimeline') {
+                return `${kpi} days`;
+            } else if (kpiName === 'pkt') {
+                return `${Math.round(kpi)}`;
+            } else if (typeof kpi === 'number' && kpi < 1) {
+                return `${(kpi * 100).toFixed(2)}%`;
+            } else if (kpiName === 'attendance' || kpiName === 'auditCompletion' || kpiName === 'allocationCompletion') {
+                return `${kpi?.toFixed?.(2) || kpi}%`;
+            } else if (typeof kpi === 'number') {
+                return `${kpi.toFixed(2)}`;
+            }
+            return kpi || 'N/A';
+        }
+
+        function formatKPIName(name) {
+            if (name.toLowerCase() === 'pkt') {
+                return 'PKT';
+            }
+            return name
+                .replace(/([A-Z])/g, ' $1')
+                .trim()
+                .split(' ')
+                .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+                .join(' ');
+        }
+
+        function renderKPICards(emp, teamKPIs) {
+            let html = '<div class="kpi-grid">';
+            
+            teamKPIs.forEach(kpiName => {
+                const kpi = emp.kpis[kpiName];
+                const statusKey = kpiName + 'Status';
+                const status = emp.kpis[statusKey] || 'Blue';
+                const statusClass = `status-${status.toLowerCase()}`;
+                const display = getKPIDisplay(emp, kpiName);
+                
+                html += `
+                    <div class="kpi-detail-card">
+                        <div class="kpi-detail-label">${formatKPIName(kpiName)}</div>
+                        <div class="kpi-detail-value">${display}</div>
+                        <div class="kpi-detail-status"><span class="status-badge ${statusClass}">${status}</span></div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+
+        // ASSOCIATE VIEW
+        function renderAssociateView() {
+            const container = document.getElementById('associateView');
+            const empId = document.getElementById('associateFilter').value;
+            
+            if (!empId) {
+                container.innerHTML = '<p class="empty-state">Select your name to view your KPIs</p>';
+                return;
+            }
+            
+            const emp = data.employees[empId];
+            if (!emp) return;
+            
+            const teamKPIs = getTeamKPIs(emp.team);
+            const statusClass = `kpi-card ${emp.status.toLowerCase()}`;
+            
+            let html = `
+                <div class="profile-header">
+                    <h3>👤 ${emp.name}</h3>
+                    <div class="profile-info">
+                        <strong>Employee ID:</strong> ${emp.id} | 
+                        <strong>Team:</strong> ${emp.team} | 
+                        <strong>Overall Score:</strong> ${emp.scores.teamScore || 0} 
+                        <span class="status-badge status-${emp.status.toLowerCase()}">${emp.status}</span>
+                    </div>
+                </div>
+
+                <div class="kpi-cards">
+                    <div class="${statusClass}">
+                        <div class="kpi-label">Overall Score</div>
+                        <div class="kpi-value">${emp.scores.teamScore || 0}</div>
+                        <div class="kpi-subtitle">${emp.status}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Incentive Status</div>
+                        <div class="kpi-value" style="font-size: 18px;">${emp.eligibility.charAt(0)}</div>
+                        <div class="kpi-subtitle">${emp.eligibility}</div>
+                    </div>
+                </div>
+
+                <h3>📊 ${emp.team} - Team-Specific KPIs (${teamKPIs.length} Metrics)</h3>
+                ${renderKPICards(emp, teamKPIs)}
+
+                <h3>📋 Detailed Performance Table</h3>
+                <div class="table-container">
+                    <table class="employee-table">
+                        <tr>
+                            <th>KPI Name</th>
+                            <th>Value</th>
+                            <th>Status</th>
+                        </tr>
+            `;
+            
+            teamKPIs.forEach(kpiName => {
+                const kpi = emp.kpis[kpiName];
+                const statusKey = kpiName + 'Status';
+                const status = emp.kpis[statusKey] || 'Blue';
+                const statusClass = `status-${status.toLowerCase()}`;
+                
+                html += `
+                    <tr>
+                        <td><strong>${formatKPIName(kpiName)}</strong></td>
+                        <td>${getKPIDisplay(emp, kpiName)}</td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
+                    </tr>
+                `;
+            });
+            
+            html += '</table></div>';
+            container.innerHTML = html;
+        }
+
+        // EMPLOYEE VIEW (Manager)
+        function renderEmployeeView() {
+            const container = document.getElementById('employeeView');
+            const empId = document.getElementById('empFilter').value;
+            
+            if (!empId) {
+                container.innerHTML = '<p class="empty-state">Select an employee to view their KPIs</p>';
+                return;
+            }
+            
+            const emp = data.employees[empId];
+            if (!emp) return;
+            
+            const teamKPIs = getTeamKPIs(emp.team);
+            const statusClass = `kpi-card ${emp.status.toLowerCase()}`;
+            
+            let html = `
+                <div class="profile-header">
+                    <h3>👨‍💼 ${emp.name}</h3>
+                    <div class="profile-info">
+                        <strong>Employee ID:</strong> ${emp.id} | 
+                        <strong>Team:</strong> ${emp.team} | 
+                        <strong>Overall Score:</strong> ${emp.scores.teamScore || 0} 
+                        <span class="status-badge status-${emp.status.toLowerCase()}">${emp.status}</span>
+                    </div>
+                </div>
+
+                <div class="kpi-cards">
+                    <div class="${statusClass}">
+                        <div class="kpi-label">Overall Score</div>
+                        <div class="kpi-value">${emp.scores.teamScore || 0}</div>
+                        <div class="kpi-subtitle">${emp.status}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Incentive Status</div>
+                        <div class="kpi-value" style="font-size: 18px;">${emp.eligibility.charAt(0)}</div>
+                        <div class="kpi-subtitle">${emp.eligibility}</div>
+                    </div>
+                </div>
+
+                <h3>📊 ${emp.team} - Team-Specific KPIs (${teamKPIs.length} Metrics)</h3>
+                ${renderKPICards(emp, teamKPIs)}
+
+                <h3>📋 Detailed Performance Table</h3>
+                <div class="table-container">
+                    <table class="employee-table">
+                        <tr>
+                            <th>KPI Name</th>
+                            <th>Value</th>
+                            <th>Status</th>
+                        </tr>
+            `;
+            
+            teamKPIs.forEach(kpiName => {
+                const kpi = emp.kpis[kpiName];
+                const statusKey = kpiName + 'Status';
+                const status = emp.kpis[statusKey] || 'Blue';
+                const statusClass = `status-${status.toLowerCase()}`;
+                
+                html += `
+                    <tr>
+                        <td><strong>${formatKPIName(kpiName)}</strong></td>
+                        <td>${getKPIDisplay(emp, kpiName)}</td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
+                    </tr>
+                `;
+            });
+            
+            html += '</table></div>';
+            container.innerHTML = html;
+        }
+        
+        // TEAM VIEW
+        function renderTeamView() {
+            const container = document.getElementById('teamView');
+            
+            let html = '';
+            const teamsToShow = currentFilters.team ? 
+                { [currentFilters.team]: data.teams[currentFilters.team] } : 
+                data.teams;
+            
+            Object.entries(teamsToShow).forEach(([teamName, memberIds]) => {
+                if (!memberIds || memberIds.length === 0) return;
+                
+                let members = memberIds.map(id => data.employees[id]).filter(e => e);
+                
+                members = members.filter(emp => {
+                    if (currentFilters.status && emp.status !== currentFilters.status) return false;
+                    if (currentFilters.eligibility && emp.eligibility !== currentFilters.eligibility) return false;
+                    return true;
+                });
+
+                if (members.length === 0) return;
+
+                const avgScore = members.reduce((sum, m) => sum + (m.scores.teamScore || 0), 0) / members.length;
+                const eligible = members.filter(m => m.eligibility === 'Eligible').length;
+                const green = members.filter(m => m.status === 'Green').length;
+                
+                html += `
+                    <div class="team-section">
+                        <div class="team-header">👥 ${teamName} (${members.length} members)</div>
+                        
+                        <div class="kpi-cards" style="margin-bottom: 15px;">
+                            <div class="kpi-card">
+                                <div class="kpi-label">Avg Score</div>
+                                <div class="kpi-value">${avgScore.toFixed(0)}</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-label">Eligible</div>
+                                <div class="kpi-value">${eligible}/${members.length}</div>
+                            </div>
+                            <div class="kpi-card green">
+                                <div class="kpi-label">Green</div>
+                                <div class="kpi-value">${green}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="table-container">
+                            <table class="employee-table">
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Score</th>
+                                    <th>PKT</th>
+                                    <th>Productivity</th>
+                                    <th>Attendance</th>
+                                    <th>Status</th>
+                                    <th>Eligible</th>
+                                </tr>
+                `;
+                
+                members.forEach(emp => {
+                    html += `
+                        <tr>
+                            <td><strong>${emp.name}</strong></td>
+                            <td>${emp.scores.teamScore || 0}</td>
+                            <td>${emp.kpis.pkt?.toFixed(0) || 'N/A'}</td>
+                            <td>${emp.kpis.productivity?.toFixed(1) || 'N/A'}h</td>
+                            <td>${emp.kpis.attendance?.toFixed(0) || 'N/A'}%</td>
+                            <td><span class="status-badge status-${emp.status.toLowerCase()}">${emp.status}</span></td>
+                            <td><span class="status-badge ${emp.eligibility === 'Eligible' ? 'eligibility-yes' : 'eligibility-no'}">${emp.eligibility.charAt(0)}</span></td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</table></div></div>';
+            });
+
+            if (!html) {
+                html = '<p class="empty-state">No teams match your filters</p>';
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // LEADERSHIP VIEW
+        function renderLeadershipView() {
+            const container = document.getElementById('leadershipView');
+            
+            const summary = {
+                totalEmployees: filteredEmployees.length,
+                avgScore: filteredEmployees.length > 0 ? Math.round(filteredEmployees.reduce((sum, e) => sum + (e.scores.teamScore || 0), 0) / filteredEmployees.length) : 0,
+                avgPKT: filteredEmployees.length > 0 ? Math.round(filteredEmployees.reduce((sum, e) => sum + (e.kpis.pkt || 0), 0) / filteredEmployees.length) : 0,
+                avgProductivity: filteredEmployees.length > 0 ? (filteredEmployees.reduce((sum, e) => sum + (e.kpis.productivity || 0), 0) / filteredEmployees.length).toFixed(1) : 0,
+                green: { count: filteredEmployees.filter(e => e.status === 'Green').length },
+                amber: { count: filteredEmployees.filter(e => e.status === 'Amber').length },
+                red: { count: filteredEmployees.filter(e => e.status === 'Red').length },
+                eligible: { count: filteredEmployees.filter(e => e.eligibility === 'Eligible').length }
+            };
+
+            summary.green.pct = filteredEmployees.length > 0 ? Math.round((summary.green.count / filteredEmployees.length) * 100) : 0;
+            summary.amber.pct = filteredEmployees.length > 0 ? Math.round((summary.amber.count / filteredEmployees.length) * 100) : 0;
+            summary.red.pct = filteredEmployees.length > 0 ? Math.round((summary.red.count / filteredEmployees.length) * 100) : 0;
+            summary.eligible.pct = filteredEmployees.length > 0 ? Math.round((summary.eligible.count / filteredEmployees.length) * 100) : 0;
+            
+            let html = `
+                <div class="kpi-cards">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Total Employees</div>
+                        <div class="kpi-value">${summary.totalEmployees}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Avg Score</div>
+                        <div class="kpi-value">${summary.avgScore}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Avg PKT</div>
+                        <div class="kpi-value">${summary.avgPKT}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Avg Productivity</div>
+                        <div class="kpi-value">${summary.avgProductivity}h</div>
+                    </div>
+                    <div class="kpi-card green">
+                        <div class="kpi-label">🟢 Green</div>
+                        <div class="kpi-value">${summary.green.count}</div>
+                        <div class="kpi-subtitle">${summary.green.pct}%</div>
+                    </div>
+                    <div class="kpi-card amber">
+                        <div class="kpi-label">🟡 Amber</div>
+                        <div class="kpi-value">${summary.amber.count}</div>
+                        <div class="kpi-subtitle">${summary.amber.pct}%</div>
+                    </div>
+                    <div class="kpi-card red">
+                        <div class="kpi-label">🔴 Red</div>
+                        <div class="kpi-value">${summary.red.count}</div>
+                        <div class="kpi-subtitle">${summary.red.pct}%</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">🎁 Eligible</div>
+                        <div class="kpi-value">${summary.eligible.count}</div>
+                        <div class="kpi-subtitle">${summary.eligible.pct}%</div>
+                    </div>
+                </div>
+
+                <h3>👥 Team Breakdown</h3>
+                <div class="table-container">
+                    <table class="employee-table">
+                        <tr>
+                            <th>Team</th>
+                            <th>Members</th>
+                            <th>Avg Score</th>
+                            <th>KPIs</th>
+                            <th>Eligible</th>
+                            <th>Green</th>
+                        </tr>
+            `;
+            
+            Object.entries(data.teams).forEach(([teamName, memberIds]) => {
+                if (!memberIds || memberIds.length === 0) return;
+                let members = memberIds.map(id => data.employees[id]).filter(e => e);
+                
+                members = members.filter(emp => {
+                    if (currentFilters.team && emp.team !== currentFilters.team) return false;
+                    if (currentFilters.status && emp.status !== currentFilters.status) return false;
+                    if (currentFilters.eligibility && emp.eligibility !== currentFilters.eligibility) return false;
+                    return true;
+                });
+
+                if (members.length === 0) return;
+
+                const avgScore = members.reduce((sum, m) => sum + (m.scores.teamScore || 0), 0) / members.length;
+                const eligible = members.filter(m => m.eligibility === 'Eligible').length;
+                const green = members.filter(m => m.status === 'Green').length;
+                const kpiCount = getTeamKPIs(teamName).length;
+                
+                html += `
+                    <tr>
+                        <td><strong>${teamName}</strong></td>
+                        <td>${members.length}</td>
+                        <td>${avgScore.toFixed(0)}</td>
+                        <td>${kpiCount} KPIs</td>
+                        <td>${eligible}/${members.length}</td>
+                        <td>🟢 ${green}/${members.length}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</table></div>';
+            container.innerHTML = html;
+        }
+        
+        function updateEmployee() {
+            renderEmployeeView();
+        }
+
+        function updateAssociate() {
+            renderAssociateView();
+        }
+        
+        function renderEmpty() {
+            document.getElementById('associateView').innerHTML = `
+                <div class="empty-state">
+                    <h2>No Data Found</h2>
+                    <p>Please process Excel files in the Admin panel first</p>
+                    <a href="admin.html">→ Go to Admin Panel</a>
+                </div>
+            `;
+        }
+        
+        window.addEventListener('load', () => {
+            loadData();
+            renderAssociateView();
+        });
+    </script>
+</body>
+</html>
