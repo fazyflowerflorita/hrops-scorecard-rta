@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Personal Scorecard - Associate Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .navbar { background: white; padding: 20px 30px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .navbar h1 { font-size: 24px; color: #222; font-weight: 700; }
+        .nav-links { display: flex; gap: 15px; }
+        .nav-link { padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600; background: #f0f0f0; color: #333; transition: all 0.3s; }
+        .nav-link:hover { background: #667eea; color: white; }
+        .nav-link.active { background: #667eea; color: white; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .card { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h2 { color: #222; margin-bottom: 25px; font-size: 24px; font-weight: 700; }
+        h3 { color: #222; margin: 30px 0 20px 0; font-size: 18px; font-weight: 600; }
+        .login-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 50px; border-radius: 12px; text-align: center; margin-bottom: 30px; }
+        .login-box h1 { color: white; margin-bottom: 30px; font-size: 32px; }
+        .login-form { max-width: 400px; margin: 0 auto; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; color: white; font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+        .form-input { width: 100%; padding: 12px 15px; border: 2px solid white; border-radius: 8px; font-size: 14px; background: rgba(255,255,255,0.1); color: white; transition: all 0.3s; }
+        .form-input::placeholder { color: rgba(255,255,255,0.7); }
+        .form-input:focus { outline: none; background: rgba(255,255,255,0.2); border-color: #ffd700; box-shadow: 0 0 10px rgba(255,215,0,0.3); }
+        .btn-login { background: #ffd700; color: #333; padding: 12px 30px; border: none; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s; width: 100%; }
+        .btn-login:hover { background: #ffed4e; transform: scale(1.02); }
+        .profile-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; }
+        .profile-header h2 { color: white; margin: 0 0 12px 0; }
+        .profile-info { font-size: 15px; opacity: 0.95; line-height: 1.6; }
+        .kpi-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .kpi-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; }
+        .kpi-card.green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .kpi-card.amber { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .kpi-card.red { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .kpi-label { font-size: 12px; opacity: 0.9; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; font-weight: 600; }
+        .kpi-value { font-size: 32px; font-weight: 700; margin: 8px 0; }
+        .kpi-subtitle { font-size: 12px; opacity: 0.85; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 30px; }
+        .kpi-detail-card { background: #f0f4f8; border-left: 4px solid #667eea; padding: 15px; border-radius: 8px; }
+        .kpi-detail-label { font-weight: 700; color: #1a1a1a; margin-bottom: 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-detail-value { font-size: 26px; font-weight: 700; color: #1a3a52; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .status-green { background: #d4edda; color: #155724; }
+        .status-amber { background: #fff3cd; color: #856404; }
+        .status-red { background: #f8d7da; color: #721c24; }
+        .status-blue { background: #d1ecf1; color: #0c5460; }
+        .table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .table th { background: #f0f4f8; padding: 14px; text-align: left; font-weight: 700; color: #333; border-bottom: 2px solid #ddd; }
+        .table td { padding: 14px; border-bottom: 1px solid #e5e7eb; color: #333; }
+        .table tr:hover { background: #f9f9f9; }
+        .table-container { overflow-x: auto; margin-bottom: 30px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 30px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.3s; }
+        .btn-pdf { background: #10b981; color: white; }
+        .btn-pdf:hover { background: #059669; }
+        .btn-logout { background: #ef4444; color: white; }
+        .btn-logout:hover { background: #dc2626; }
+        .empty-state { text-align: center; padding: 40px; }
+        .empty-state h2 { color: #666; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #dc2626; }
+        @media (max-width: 768px) { 
+            .card { padding: 20px; }
+            .login-box { padding: 30px 20px; }
+            .kpi-cards { grid-template-columns: 1fr 1fr; }
+            .kpi-grid { grid-template-columns: 1fr; }
+            .btn-group { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>👤 My Personal Scorecard</h1>
+        <div class="nav-links">
+            <a href="admin.html" class="nav-link">Admin</a>
+            <a href="manager.html" class="nav-link">Manager</a>
+            <a href="#" class="nav-link active">Associate</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div id="loginView" class="card" style="padding: 0; background: none; box-shadow: none;">
+            <div class="login-box">
+                <h1>🔐 Your Personal Scorecard</h1>
+                <div class="login-form">
+                    <div class="form-group">
+                        <label class="form-label">Enter Your Employee ID</label>
+                        <input type="text" id="empIdInput" class="form-input" placeholder="e.g., P11561" onkeypress="if(event.key==='Enter') loginEmployee()">
+                    </div>
+                    <button class="btn-login" onclick="loginEmployee()">🔓 View My Scorecard</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="dashboardView" class="card" style="display: none;">
+            <!-- PROFILE HEADER -->
+            <div id="profileHeader"></div>
+
+            <!-- SUMMARY CARDS -->
+            <div id="summaryCards"></div>
+
+            <!-- KPI GRID -->
+            <h3>📊 Your Performance Metrics</h3>
+            <div id="kpiGrid"></div>
+
+            <!-- DETAILED TABLE -->
+            <h3>📋 Detailed Metrics</h3>
+            <div class="table-container">
+                <table id="kpiTable" class="table">
+                    <tr>
+                        <th>Metric Name</th>
+                        <th>Value</th>
+                        <th>Status</th>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- ACTION BUTTONS -->
+            <div class="btn-group">
+                <button class="btn btn-pdf" onclick="downloadPDF()">📥 Download My Scorecard (PDF)</button>
+                <button class="btn btn-logout" onclick="logout()">🚪 Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let data = null;
+        let currentEmployee = null;
+        let allEmployees = [];
+
+        function loadData() {
+            const stored = localStorage.getItem('hrops_scorecard_data');
+            if (!stored) {
+                showError('No data found. Please upload files in Admin panel first.');
+                return;
+            }
+            
+            data = JSON.parse(stored);
+            allEmployees = Object.values(data.employees || {});
+        }
+
+        function loginEmployee() {
+            const empId = document.getElementById('empIdInput').value.trim().toUpperCase();
+            
+            if (!empId) {
+                showError('Please enter your Employee ID');
+                return;
+            }
+            
+            const emp = allEmployees.find(e => e.id.toUpperCase() === empId);
+            
+            if (!emp) {
+                showError(`Employee ID "${empId}" not found. Please check and try again.`);
+                return;
+            }
+            
+            currentEmployee = emp;
+            showDashboard();
+        }
+
+        function showDashboard() {
+            document.getElementById('loginView').style.display = 'none';
+            document.getElementById('dashboardView').style.display = 'block';
+            renderDashboard();
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                currentEmployee = null;
+                document.getElementById('loginView').style.display = 'block';
+                document.getElementById('dashboardView').style.display = 'none';
+                document.getElementById('empIdInput').value = '';
+                document.getElementById('empIdInput').focus();
+            }
+        }
+
+        function showError(msg) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = '⚠️ ' + msg;
+            const container = document.querySelector('.container');
+            container.insertBefore(errorDiv, container.firstChild);
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        function getTeamKPIs(team) {
+            const kpiMaps = {
+                'HR Operations': ['productivity', 'nhPending', 'dataChanges', 'terminationStatus', 'tenureDiscount', 'pkt', 'attendance', 'clientPending'],
+                'Compliance': ['productivity', 'nhPending', 'internalAuditErrors', 'pkt', 'attendance', 'clientPending'],
+                'Final Clearance': ['productivity', 'internalAuditErrors', 'clearanceSLA', 'clearanceCount', 'pkt', 'attendance', 'clientPending'],
+                'Internal Audit': ['productivity', 'nhPending', 'qmgTimeline', 'qmgNCAErrors', 'qmgCAErrors', 'auditCompletion', 'pkt', 'attendance', 'clientPending'],
+                'Paperwork Clearance': ['productivity', 'nhPending', 'internalAuditErrors', 'paperworkSLA', 'allocationCompletion', 'pkt', 'attendance', 'clientPending']
+            };
+            return kpiMaps[team] || [];
+        }
+
+        function getKPIDisplay(emp, kpiName) {
+            const kpi = emp.kpis[kpiName];
+            if (kpiName === 'clearanceSLA' || kpiName === 'paperworkSLA' || kpiName === 'qmgTimeline') {
+                return `${kpi} days`;
+            } else if (kpiName === 'pkt') {
+                return `${Math.round(kpi)}`;
+            } else if (typeof kpi === 'number' && kpi < 1) {
+                return `${(kpi * 100).toFixed(2)}%`;
+            } else if (kpiName === 'attendance' || kpiName === 'auditCompletion' || kpiName === 'allocationCompletion') {
+                return `${kpi?.toFixed?.(2) || kpi}%`;
+            } else if (typeof kpi === 'number') {
+                return `${kpi.toFixed(2)}`;
+            }
+            return kpi || 'N/A';
+        }
+
+        function formatKPIName(name) {
+            if (name.toLowerCase() === 'pkt') return 'PKT';
+            return name.replace(/([A-Z])/g, ' $1').trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        }
+
+        function renderDashboard() {
+            if (!currentEmployee || !data) return;
+
+            const emp = currentEmployee;
+            const teamKPIs = getTeamKPIs(emp.team);
+            const statusClass = `kpi-card ${emp.status.toLowerCase()}`;
+
+            // Profile Header - SECURITY: Only show current employee data
+            const profileHTML = `
+                <div class="profile-header">
+                    <h2>👤 ${emp.name}</h2>
+                    <div class="profile-info">
+                        <strong>Employee ID:</strong> ${emp.id} | 
+                        <strong>Team:</strong> ${emp.team} | 
+                        <strong>Manager:</strong> Hariharan A
+                    </div>
+                    <div style="margin-top: 10px; font-size: 12px; opacity: 0.9;">
+                        ℹ️ This is your personal scorecard. Only you can view your data.
+                    </div>
+                </div>
+            `;
+            document.getElementById('profileHeader').innerHTML = profileHTML;
+
+            // Summary Cards
+            const summaryHTML = `
+                <div class="kpi-cards">
+                    <div class="${statusClass}">
+                        <div class="kpi-label">Overall Score</div>
+                        <div class="kpi-value">${emp.scores.teamScore || 0}</div>
+                        <div class="kpi-subtitle">${emp.status}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Incentive Status</div>
+                        <div class="kpi-value" style="font-size: 24px;">${emp.eligibility === 'Eligible' ? '✅' : '❌'}</div>
+                        <div class="kpi-subtitle">${emp.eligibility}</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('summaryCards').innerHTML = summaryHTML;
+
+            // KPI Grid
+            let kpiGridHTML = '<div class="kpi-grid">';
+            teamKPIs.forEach(kpiName => {
+                const kpi = emp.kpis[kpiName];
+                const statusKey = kpiName + 'Status';
+                const status = emp.kpis[statusKey] || 'Blue';
+                const statusClass = `status-${status.toLowerCase()}`;
+                const display = getKPIDisplay(emp, kpiName);
+                
+                kpiGridHTML += `
+                    <div class="kpi-detail-card">
+                        <div class="kpi-detail-label">${formatKPIName(kpiName)}</div>
+                        <div class="kpi-detail-value">${display}</div>
+                        <div style="margin-top: 8px;"><span class="status-badge ${statusClass}">${status}</span></div>
+                    </div>
+                `;
+            });
+            kpiGridHTML += '</div>';
+            document.getElementById('kpiGrid').innerHTML = kpiGridHTML;
+
+            // Table
+            let tableHTML = '<tr><th>Metric Name</th><th>Value</th><th>Status</th></tr>';
+            
+            teamKPIs.forEach(kpiName => {
+                const kpi = emp.kpis[kpiName];
+                const statusKey = kpiName + 'Status';
+                const status = emp.kpis[statusKey] || 'Blue';
+                const statusClass = `status-${status.toLowerCase()}`;
+                
+                tableHTML += `
+                    <tr>
+                        <td><strong>${formatKPIName(kpiName)}</strong></td>
+                        <td>${getKPIDisplay(emp, kpiName)}</td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
+                    </tr>
+                `;
+            });
+            document.getElementById('kpiTable').innerHTML = tableHTML;
+        }
+
+        function downloadPDF() {
+            if (!currentEmployee) {
+                showError('No employee selected');
+                return;
+            }
+
+            const element = document.getElementById('dashboardView');
+            const opt = {
+                margin: 10,
+                filename: `Scorecard_${currentEmployee.name}_${currentEmployee.id}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+            
+            html2pdf().set(opt).from(element).save();
+        }
+
+        window.addEventListener('load', () => {
+            loadData();
+            document.getElementById('empIdInput').focus();
+        });
+    </script>
+</body>
+</html>
