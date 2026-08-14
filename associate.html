@@ -9,54 +9,82 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
         .navbar { background: white; padding: 20px 30px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .navbar h1 { font-size: 24px; color: #333; }
+        .navbar h1 { font-size: 24px; color: #222; font-weight: 700; }
         .nav-links { display: flex; gap: 15px; }
         .nav-link { padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600; background: #f0f0f0; color: #333; transition: all 0.3s; }
         .nav-link:hover { background: #667eea; color: white; }
         .nav-link.active { background: #667eea; color: white; }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .card { background: white; border-radius: 12px; padding: 30px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        h2 { color: #333; margin-bottom: 20px; font-size: 22px; }
-        h3 { color: #1a1a1a; margin: 25px 0 15px 0; font-size: 16px; font-weight: 700; }
-        .tabs { display: flex; gap: 10px; border-bottom: 2px solid #e0e0e0; margin-bottom: 20px; flex-wrap: wrap; }
-        .tab-btn { background: none; border: none; padding: 12px 20px; font-size: 14px; font-weight: 700; color: #333; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s; }
-        .tab-btn:hover { color: #667eea; background: #f0f4f8; border-radius: 4px; }
-        .tab-btn.active { color: #667eea; border-bottom-color: #667eea; }
-        .profile-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; }
-        .profile-header h2 { color: white; margin: 0 0 10px 0; }
-        .profile-info { font-size: 14px; opacity: 0.95; }
-        .kpi-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; }
-        .kpi-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; text-align: center; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .card { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h2 { color: #222; margin-bottom: 25px; font-size: 24px; font-weight: 700; }
+        h3 { color: #222; margin: 30px 0 20px 0; font-size: 18px; font-weight: 600; }
+        .login-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 50px; border-radius: 12px; text-align: center; margin-bottom: 30px; }
+        .login-box h1 { color: white; margin-bottom: 30px; font-size: 32px; }
+        .login-form { max-width: 400px; margin: 0 auto; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; color: white; font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+        .form-input { width: 100%; padding: 12px 15px; border: 2px solid white; border-radius: 8px; font-size: 14px; background: rgba(255,255,255,0.1); color: white; transition: all 0.3s; }
+        .form-input::placeholder { color: rgba(255,255,255,0.7); }
+        .form-input:focus { outline: none; background: rgba(255,255,255,0.2); border-color: #ffd700; box-shadow: 0 0 10px rgba(255,215,0,0.3); }
+        .btn-login { background: #ffd700; color: #333; padding: 12px 30px; border: none; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s; width: 100%; }
+        .btn-login:hover { background: #ffed4e; transform: scale(1.02); }
+        .profile-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; }
+        .profile-header h2 { color: white; margin: 0 0 12px 0; }
+        .profile-info { font-size: 15px; opacity: 0.95; line-height: 1.6; }
+        .kpi-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .kpi-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; }
         .kpi-card.green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
         .kpi-card.amber { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
         .kpi-card.red { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
-        .kpi-label { font-size: 10px; opacity: 0.9; text-transform: uppercase; margin-bottom: 6px; }
-        .kpi-value { font-size: 26px; font-weight: bold; }
-        .kpi-subtitle { font-size: 10px; opacity: 0.8; margin-top: 6px; }
-        .incentive-card { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px; border-radius: 8px; margin: 10px 0; }
-        .incentive-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 20px; padding: 12px; background: #f8f9ff; border-left: 4px solid #667eea; margin: 8px 0; border-radius: 6px; }
-        .incentive-label { font-weight: 600; color: #1a1a1a; }
-        .incentive-value { text-align: right; font-weight: 700; font-size: 16px; color: #1a3a52; }
-        .incentive-status { text-align: center; font-weight: 600; }
-        .incentive-footer { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: right; font-size: 18px; font-weight: 700; }
-        .incentive-warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; border-radius: 6px; color: #856404; margin: 10px 0; font-weight: 600; }
-        .status-badge { display: inline-block; padding: 4px 10px; border-radius: 15px; font-size: 11px; font-weight: 600; }
+        .kpi-label { font-size: 12px; opacity: 0.9; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; font-weight: 600; }
+        .kpi-value { font-size: 32px; font-weight: 700; margin: 8px 0; }
+        .kpi-subtitle { font-size: 12px; opacity: 0.85; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 30px; }
+        .kpi-detail-card { background: #f0f4f8; border-left: 4px solid #667eea; padding: 15px; border-radius: 8px; }
+        .kpi-detail-label { font-weight: 700; color: #1a1a1a; margin-bottom: 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-detail-value { font-size: 26px; font-weight: 700; color: #1a3a52; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
         .status-green { background: #d4edda; color: #155724; }
         .status-amber { background: #fff3cd; color: #856404; }
         .status-red { background: #f8d7da; color: #721c24; }
         .status-blue { background: #d1ecf1; color: #0c5460; }
-        .table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .table th { background: #e8ecf8; padding: 12px; text-align: left; font-weight: 700; color: #1a1a1a; border-bottom: 3px solid #667eea; text-transform: uppercase; font-size: 12px; }
-        .table td { padding: 12px; border-bottom: 1px solid #e0e0e0; color: #333; }
+        .table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .table th { background: #f0f4f8; padding: 14px; text-align: left; font-weight: 700; color: #333; border-bottom: 2px solid #ddd; }
+        .table td { padding: 14px; border-bottom: 1px solid #e5e7eb; color: #333; }
+        .table tr:hover { background: #f9f9f9; }
+        .table-container { overflow-x: auto; margin-bottom: 30px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 30px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.3s; }
+        .btn-pdf { background: #10b981; color: white; }
+        .btn-pdf:hover { background: #059669; }
+        .btn-logout { background: #ef4444; color: white; }
+        .btn-logout:hover { background: #dc2626; }
+        .empty-state { text-align: center; padding: 40px; }
+        .empty-state h2 { color: #666; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #dc2626; }
         @media (max-width: 768px) { 
-            .incentive-row { grid-template-columns: 1fr; }
-            .tabs { flex-direction: column; }
+            .card { padding: 20px; }
+            .login-box { padding: 30px 20px; }
+            .kpi-cards { grid-template-columns: 1fr 1fr; }
+            .kpi-grid { grid-template-columns: 1fr; }
+            .btn-group { flex-direction: column; }
         }
+        .incentive-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 20px; padding: 12px; background: #f8f9ff; border-left: 4px solid #667eea; margin: 8px 0; border-radius: 6px; align-items: center; }
+        .incentive-label { font-weight: 600; color: #1a1a1a; }
+        .incentive-value { text-align: right; font-weight: 700; font-size: 15px; color: #1a3a52; }
+        .incentive-status { text-align: center; font-weight: 600; }
+        .incentive-footer { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: right; font-size: 18px; font-weight: 700; }
+        .incentive-warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; border-radius: 6px; color: #856404; margin: 10px 0; font-weight: 600; }
+        .tabs { display: flex; gap: 10px; border-bottom: 2px solid #e0e0e0; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn { background: none; border: none; padding: 12px 20px; font-size: 14px; font-weight: 700; color: #333; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s; }
+        .tab-btn:hover { color: #667eea; background: #f0f4f8; border-radius: 4px; }
+        .tab-btn.active { color: #667eea; border-bottom-color: #667eea; }
+        @media (max-width: 768px) { .incentive-row { grid-template-columns: 1fr; } .tabs { flex-direction: column; } }
     </style>
 </head>
 <body>
     <div class="navbar">
-        <h1>👤 My Personal Scorecard & Incentives</h1>
+        <h1>👤 My Personal Scorecard</h1>
         <div class="nav-links">
             <a href="admin.html" class="nav-link">Admin</a>
             <a href="manager.html" class="nav-link">Manager</a>
@@ -65,304 +93,99 @@
     </div>
     
     <div class="container">
-        <div class="card">
-            <!-- EMPLOYEE SELECTOR -->
-            <div style="background: #f8f9ff; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #667eea;">
-                <h3>🔍 Select Your Profile</h3>
-                <div style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 15px; align-items: end;">
-                    <div>
-                        <label style="font-weight: 600; color: #333; display: block; margin-bottom: 8px;">Employee Name</label>
-                        <select id="employeeSelect" onchange="selectEmployee()" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 13px;">
-                            <option value="">-- Select Employee --</option>
-                        </select>
+        <div id="loginView" class="card" style="padding: 0; background: none; box-shadow: none;">
+            <div class="login-box">
+                <h1>🔐 Your Personal Scorecard</h1>
+                <div class="login-form">
+                    <div class="form-group">
+                        <label class="form-label">Enter Your Employee ID</label>
+                        <input type="text" id="empIdInput" class="form-input" placeholder="e.g., P11561" onkeypress="if(event.key==='Enter') loginEmployee()">
                     </div>
-                    <div>
-                        <label style="font-weight: 600; color: #333; display: block; margin-bottom: 8px;">Employee ID</label>
-                        <input type="text" id="empIdSearch" placeholder="e.g., P11561" onkeyup="searchEmployee()" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
-                    </div>
-                    <button onclick="downloadPDF()" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600;">📥 PDF</button>
+                    <button class="btn-login" onclick="loginEmployee()">🔓 View My Scorecard</button>
                 </div>
             </div>
+        </div>
 
-            <!-- TABS -->
-            <div id="tabsContainer" style="display:none;">
-                <div class="tabs">
-                    <button class="tab-btn active" onclick="switchTab('profile')">📋 Profile</button>
-                    <button class="tab-btn" onclick="switchTab('kpis')">📊 KPIs</button>
-                    <button class="tab-btn" onclick="switchTab('incentive')">💰 Incentive</button>
-                </div>
+        <div id="dashboardView" class="card" style="display: none;">
+            <!-- PROFILE HEADER -->
+            <div id="profileHeader"></div>
+
+            <!-- SUB TABS -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchDashboardTab('profile')">👤 Profile</button>
+                <button class="tab-btn" onclick="switchDashboardTab('kpis')">📊 KPIs</button>
+                <button class="tab-btn" onclick="switchDashboardTab('status')">🚦 Status</button>
+                <button class="tab-btn" onclick="switchDashboardTab('incentive')">💰 Incentive</button>
             </div>
 
-            <div id="contentArea"></div>
+            <div id="dashboardTabContent"></div>
+
+            <!-- ACTION BUTTONS -->
+            <div class="btn-group">
+                <button class="btn btn-pdf" onclick="downloadPDF()">📥 Download My Scorecard (PDF)</button>
+                <button class="btn btn-logout" onclick="logout()">🚪 Logout</button>
+            </div>
         </div>
     </div>
 
     <script>
         let data = null;
-        let allEmployees = [];
         let currentEmployee = null;
-        let currentTab = 'profile';
-
-        // INCENTIVE STRUCTURE (Same as Manager)
-        const incentiveStructure = {
-            'Executive': {
-                components: [
-                    { name: 'Productivity', weightage: 26, maxAmount: 1150, kpi: 'productivity', threshold: 85, target: 100 },
-                    { name: 'Audit Timelines / SLA', weightage: 17, maxAmount: 750, kpi: 'clearanceSLA', threshold: 85, target: 100 },
-                    { name: 'Quality Score', weightage: 30, maxAmount: 1150, kpi: 'internalAuditErrors', hasDelimiters: true },
-                    { name: 'Process Knowledge Test', weightage: 0, maxAmount: 250, kpi: 'pkt', threshold: 85, target: 90 },
-                    { name: 'BG/NH Pending', weightage: 0, maxAmount: 750, kpi: 'nhPending' },
-                    { name: 'Leave Compliance', weightage: 0, maxAmount: 450, kpi: 'attendance' }
-                ]
-            },
-            'Auditor': {
-                components: [
-                    { name: 'Productivity', weightage: 15, maxAmount: 625, kpi: 'productivity', threshold: 85, target: 100 },
-                    { name: 'Audit Timelines / SLA', weightage: 30, maxAmount: 1050, kpi: 'qmgTimeline', threshold: 85, target: 100 },
-                    { name: 'Quality Score', weightage: 30, maxAmount: 1375, kpi: 'qmgNCAErrors', hasDelimiters: true },
-                    { name: 'Process Knowledge Test', weightage: 10, maxAmount: 250, kpi: 'pkt', threshold: 85, target: 90 },
-                    { name: 'BG/NH Pending', weightage: 10, maxAmount: 750, kpi: 'nhPending' },
-                    { name: 'Leave Compliance', weightage: 5, maxAmount: 450, kpi: 'attendance' }
-                ]
-            },
-            'Process Lead': {
-                components: [
-                    { name: 'Productivity', weightage: 15, maxAmount: 700, kpi: 'productivity', threshold: 85, target: 100 },
-                    { name: 'Audit Timelines / SLA', weightage: 25, maxAmount: 950, kpi: 'qmgTimeline', threshold: 85, target: 100 },
-                    { name: 'Quality Score', weightage: 30, maxAmount: 1050, kpi: 'qmgNCAErrors', hasDelimiters: true },
-                    { name: 'Process Knowledge Test', weightage: 10, maxAmount: 450, kpi: 'pkt', threshold: 85, target: 90 },
-                    { name: 'SOP & Trainings', weightage: 20, maxAmount: 900, kpi: 'auditCompletion' },
-                    { name: 'Leave Compliance', weightage: 5, maxAmount: 450, kpi: 'attendance' }
-                ]
-            }
-        };
-
-        function getRoleByTeam(team) {
-            const roleMap = {
-                'HR Operations': 'Executive',
-                'Compliance': 'Auditor',
-                'Final Clearance': 'Auditor',
-                'Internal Audit': 'Auditor',
-                'Paperwork Clearance': 'Process Lead'
-            };
-            return roleMap[team] || 'Executive';
-        }
-
-        function calculateIncentive(emp) {
-            const role = getRoleByTeam(emp.team);
-            const structure = incentiveStructure[role];
-            const components = [];
-            let totalIncentive = 0;
-            let hasCAError = emp.kpis.qmgCAErrors > 0 || emp.kpis.internalAuditErrors > 0;
-
-            structure.components.forEach(comp => {
-                let amount = 0;
-                let status = 'Not Eligible';
-
-                if (comp.name === 'Productivity') {
-                    const achieved = emp.kpis.productivity;
-                    if (achieved >= 100) {
-                        amount = comp.maxAmount;
-                        status = 'Full';
-                    } else if (achieved >= comp.threshold) {
-                        amount = (achieved / comp.target) * comp.maxAmount;
-                        status = 'Partial';
-                    }
-                } else if (comp.name === 'Quality Score') {
-                    // CA ERROR RULE
-                    if (hasCAError) {
-                        amount = 0;
-                        status = '❌ CA Error';
-                    } else {
-                        const errors = (emp.kpis.qmgCAErrors || 0) + (emp.kpis.qmgNCAErrors || 0);
-                        const qualityPercent = Math.max(0, 100 - (errors * 5));
-                        if (qualityPercent >= 99.5) {
-                            amount = comp.maxAmount;
-                            status = 'Excellent';
-                        } else if (qualityPercent >= 95) {
-                            amount = (qualityPercent / 99.5) * comp.maxAmount;
-                            status = 'Good';
-                        }
-                    }
-                } else if (comp.name === 'Process Knowledge Test') {
-                    const pkt = emp.kpis.pkt;
-                    if (pkt >= 90) {
-                        amount = comp.maxAmount;
-                        status = 'Full';
-                    } else if (pkt >= 85) {
-                        amount = (pkt / 90) * comp.maxAmount;
-                        status = 'Partial';
-                    }
-                } else if (comp.name === 'BG/NH Pending') {
-                    if (emp.kpis.nhPending === 0) {
-                        amount = comp.maxAmount;
-                        status = 'Full';
-                    }
-                } else if (comp.name === 'Leave Compliance') {
-                    if (emp.kpis.attendance >= 95) {
-                        amount = comp.maxAmount;
-                        status = 'Full';
-                    }
-                } else if (comp.name === 'Audit Timelines / SLA') {
-                    const sla = emp.kpis[comp.kpi];
-                    if (sla <= 2) {
-                        amount = comp.maxAmount;
-                        status = 'Full';
-                    }
-                }
-
-                totalIncentive += amount;
-                components.push({
-                    name: comp.name,
-                    maxAmount: comp.maxAmount,
-                    amount: Math.round(amount),
-                    status: status
-                });
-            });
-
-            return {
-                role: role,
-                components: components,
-                totalIncentive: Math.round(totalIncentive),
-                hasCAError: hasCAError
-            };
-        }
+        let allEmployees = [];
 
         function loadData() {
             const stored = localStorage.getItem('hrops_scorecard_data');
             if (!stored) {
-                document.getElementById('contentArea').innerHTML = '<p style="color: #666; font-size: 14px;">No data found. Please upload files in Admin panel first.</p>';
+                showError('No data found. Please upload files in Admin panel first.');
                 return;
             }
             
             data = JSON.parse(stored);
             allEmployees = Object.values(data.employees || {});
-            populateSelectors();
         }
 
-        function populateSelectors() {
-            const select = document.getElementById('employeeSelect');
-            select.innerHTML = '<option value="">-- Select Employee --</option>';
-            allEmployees.forEach(emp => {
-                const opt = document.createElement('option');
-                opt.value = emp.id;
-                opt.textContent = `${emp.name} (${emp.id})`;
-                select.appendChild(opt);
-            });
+        function loginEmployee() {
+            const empId = document.getElementById('empIdInput').value.trim().toUpperCase();
+            
+            if (!empId) {
+                showError('Please enter your Employee ID');
+                return;
+            }
+            
+            const emp = allEmployees.find(e => e.id.toUpperCase() === empId);
+            
+            if (!emp) {
+                showError(`Employee ID "${empId}" not found. Please check and try again.`);
+                return;
+            }
+            
+            currentEmployee = emp;
+            showDashboard();
         }
 
-        function searchEmployee() {
-            const empId = document.getElementById('empIdSearch').value.toUpperCase();
-            const found = allEmployees.find(e => e.id.toUpperCase() === empId);
-            if (found) {
-                currentEmployee = found;
-                document.getElementById('employeeSelect').value = found.id;
-                document.getElementById('tabsContainer').style.display = 'block';
-                switchTab('profile');
+        function showDashboard() {
+            document.getElementById('loginView').style.display = 'none';
+            document.getElementById('dashboardView').style.display = 'block';
+            renderDashboard();
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                currentEmployee = null;
+                document.getElementById('loginView').style.display = 'block';
+                document.getElementById('dashboardView').style.display = 'none';
+                document.getElementById('empIdInput').value = '';
+                document.getElementById('empIdInput').focus();
             }
         }
 
-        function selectEmployee() {
-            const empId = document.getElementById('employeeSelect').value;
-            if (empId) {
-                currentEmployee = allEmployees.find(e => e.id === empId);
-                document.getElementById('empIdSearch').value = empId;
-                document.getElementById('tabsContainer').style.display = 'block';
-                currentTab = 'profile';
-                switchTab('profile');
-            }
-        }
-
-        function switchTab(tab) {
-            currentTab = tab;
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            if (tab === 'profile') renderProfile();
-            else if (tab === 'kpis') renderKPIs();
-            else if (tab === 'incentive') renderIncentive();
-        }
-
-        function renderProfile() {
-            const emp = currentEmployee;
-            const html = `
-                <div class="profile-header">
-                    <h2>👤 ${emp.name}</h2>
-                    <div class="profile-info">
-                        <strong>Employee ID:</strong> ${emp.id} | 
-                        <strong>Team:</strong> ${emp.team} | 
-                        <strong>Role:</strong> ${getRoleByTeam(emp.team)}
-                    </div>
-                    <div style="margin-top: 10px; font-size: 12px; opacity: 0.9;">
-                        ℹ️ This is your personal scorecard. Only you can view your data.
-                    </div>
-                </div>
-                <div class="kpi-cards">
-                    <div class="kpi-card ${emp.status.toLowerCase()}">
-                        <div class="kpi-label">Overall Score</div>
-                        <div class="kpi-value">${emp.scores.teamScore || 0}</div>
-                        <div class="kpi-subtitle">${emp.status}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-label">Incentive Status</div>
-                        <div class="kpi-value">${emp.eligibility.charAt(0)}</div>
-                        <div class="kpi-subtitle">${emp.eligibility}</div>
-                    </div>
-                </div>
-            `;
-            document.getElementById('contentArea').innerHTML = html;
-        }
-
-        function renderKPIs() {
-            const emp = currentEmployee;
-            const teamKPIs = getTeamKPIs(emp.team);
-            let html = '<h3>📊 Team-Specific KPIs</h3><div style="width: 100%; overflow-x: auto;"><table class="table"><tr><th>KPI</th><th>Value</th><th>Status</th></tr>';
-            
-            teamKPIs.forEach(kpiName => {
-                const value = emp.kpis[kpiName];
-                const status = emp.kpis[kpiName + 'Status'] || 'Blue';
-                html += `
-                    <tr>
-                        <td><strong>${formatKPIName(kpiName)}</strong></td>
-                        <td>${getKPIDisplay(kpiName, value)}</td>
-                        <td><span class="status-badge status-${status.toLowerCase()}">${status}</span></td>
-                    </tr>
-                `;
-            });
-            
-            html += '</table></div>';
-            document.getElementById('contentArea').innerHTML = html;
-        }
-
-        function renderIncentive() {
-            const emp = currentEmployee;
-            const incentive = calculateIncentive(emp);
-            
-            let html = `<h3>💰 Incentive Breakdown - ${incentive.role}</h3>`;
-            
-            if (incentive.hasCAError) {
-                html += `<div class="incentive-warning">
-                    ⚠️ <strong>Customer Affecting (CA) Error Detected:</strong> Quality Score component = ₹0
-                </div>`;
-            }
-            
-            incentive.components.forEach(comp => {
-                html += `
-                    <div class="incentive-row">
-                        <div class="incentive-label">${comp.name}</div>
-                        <div class="incentive-value">₹${comp.amount.toLocaleString()}</div>
-                        <div class="incentive-status"><span class="status-badge status-${comp.status === 'Full' || comp.status === 'Excellent' ? 'green' : comp.status === 'Partial' || comp.status === 'Good' ? 'amber' : 'red'}">${comp.status}</span></div>
-                    </div>
-                `;
-            });
-            
-            html += `
-                <div class="incentive-footer">
-                    💰 Total Incentive: ₹${incentive.totalIncentive.toLocaleString()}
-                </div>
-            `;
-            
-            document.getElementById('contentArea').innerHTML = html;
+        function showError(msg) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = '⚠️ ' + msg;
+            const container = document.querySelector('.container');
+            container.insertBefore(errorDiv, container.firstChild);
+            setTimeout(() => errorDiv.remove(), 5000);
         }
 
         function getTeamKPIs(team) {
@@ -376,12 +199,321 @@
             return kpiMaps[team] || [];
         }
 
+        function getKPIDisplay(emp, kpiName) {
+            const kpi = emp.kpis[kpiName];
+            if (kpiName === 'clearanceSLA' || kpiName === 'paperworkSLA' || kpiName === 'qmgTimeline') {
+                return `${kpi} days`;
+            } else if (kpiName === 'pkt') {
+                return `${Math.round(kpi)}`;
+            } else if (typeof kpi === 'number' && kpi < 1) {
+                return `${(kpi * 100).toFixed(2)}%`;
+            } else if (kpiName === 'attendance' || kpiName === 'auditCompletion' || kpiName === 'allocationCompletion') {
+                return `${kpi?.toFixed?.(2) || kpi}%`;
+            } else if (typeof kpi === 'number') {
+                return `${kpi.toFixed(2)}`;
+            }
+            return kpi || 'N/A';
+        }
+
         function formatKPIName(name) {
             if (name.toLowerCase() === 'pkt') return 'PKT';
             return name.replace(/([A-Z])/g, ' $1').trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         }
 
-        function getKPIDisplay(kpiName, value) {
+let currentDashboardTab = 'profile';
+
+        function renderDashboard() {
+            if (!currentEmployee || !data) return;
+
+            const emp = currentEmployee;
+
+            // Profile Header - SECURITY: Only show current employee data
+            const profileHTML = `
+                <div class="profile-header">
+                    <h2>👤 ${emp.name}</h2>
+                    <div class="profile-info">
+                        <strong>Employee ID:</strong> ${emp.id} |
+                        <strong>Team:</strong> ${emp.team} |
+                        <strong>Manager:</strong> Hariharan A
+                    </div>
+                    <div style="margin-top: 10px; font-size: 12px; opacity: 0.9;">
+                        ℹ️ This is your personal scorecard. Only you can view your data.
+                    </div>
+                </div>
+            `;
+            document.getElementById('profileHeader').innerHTML = profileHTML;
+
+            currentDashboardTab = 'profile';
+            document.querySelectorAll('#dashboardView .tabs .tab-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+            renderDashboardTab();
+        }
+
+        function switchDashboardTab(tab) {
+            currentDashboardTab = tab;
+            document.querySelectorAll('#dashboardView .tabs .tab-btn').forEach(b => b.classList.remove('active'));
+            if (window.event && window.event.target) window.event.target.classList.add('active');
+            renderDashboardTab();
+        }
+
+        function renderDashboardTab() {
+            if (!currentEmployee) return;
+            const emp = currentEmployee;
+            if (currentDashboardTab === 'profile') renderProfileTab(emp);
+            else if (currentDashboardTab === 'kpis') renderKPIsTab(emp);
+            else if (currentDashboardTab === 'status') document.getElementById('dashboardTabContent').innerHTML = renderStatusHTML(emp);
+            else if (currentDashboardTab === 'incentive') document.getElementById('dashboardTabContent').innerHTML = renderIncentiveHTML(emp, allEmployees);
+        }
+
+        function renderProfileTab(emp) {
+            const statusClass = `kpi-card ${emp.status.toLowerCase()}`;
+            const html = `
+                <div class="kpi-cards">
+                    <div class="${statusClass}">
+                        <div class="kpi-label">Overall Score</div>
+                        <div class="kpi-value">${emp.scores.teamScore || 0}</div>
+                        <div class="kpi-subtitle">${emp.status}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Incentive Status</div>
+                        <div class="kpi-value" style="font-size: 24px;">${emp.eligibility === 'Eligible' ? '✅' : '❌'}</div>
+                        <div class="kpi-subtitle">${emp.eligibility}</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('dashboardTabContent').innerHTML = html;
+        }
+
+        function renderKPIsTab(emp) {
+            const teamKPIs = getTeamKPIs(emp.team);
+
+            let kpiGridHTML = '<h3>📊 Your Performance Metrics</h3><div class="kpi-grid">';
+            teamKPIs.forEach(kpiName => {
+                const kpi = emp.kpis[kpiName];
+                const statusKey = kpiName + 'Status';
+                const status = emp.kpis[statusKey] || 'Blue';
+                const statusClass = `status-${status.toLowerCase()}`;
+                const display = getKPIDisplay(emp, kpiName);
+
+                kpiGridHTML += `
+                    <div class="kpi-detail-card">
+                        <div class="kpi-detail-label">${formatKPIName(kpiName)}</div>
+                        <div class="kpi-detail-value">${display}</div>
+                        <div style="margin-top: 8px;"><span class="status-badge ${statusClass}">${status}</span></div>
+                    </div>
+                `;
+            });
+            kpiGridHTML += '</div>';
+
+            let tableHTML = '<h3>📋 Detailed Metrics</h3><div class="table-container"><table class="table"><tr><th>Metric Name</th><th>Value</th><th>Status</th></tr>';
+            teamKPIs.forEach(kpiName => {
+                const kpi = emp.kpis[kpiName];
+                const statusKey = kpiName + 'Status';
+                const status = emp.kpis[statusKey] || 'Blue';
+                const statusClass = `status-${status.toLowerCase()}`;
+
+                tableHTML += `
+                    <tr>
+                        <td><strong>${formatKPIName(kpiName)}</strong></td>
+                        <td>${getKPIDisplay(emp, kpiName)}</td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
+                    </tr>
+                `;
+            });
+            tableHTML += '</table></div>';
+
+            document.getElementById('dashboardTabContent').innerHTML = kpiGridHTML + tableHTML;
+        }
+
+        
+        // ============================================================
+        // INCENTIVE ENGINE
+        // ------------------------------------------------------------
+        // Role mapping is inferred from team, since the roster data does
+        // not carry an explicit "Executive / Auditor / Process Lead"
+        // designation anywhere in the source files. Adjust ROLE_MAP below
+        // if actual job titles differ from this assumption:
+        //   HR Operations                          -> Executive / Senior Executive
+        //   Compliance, Final Clearance, Internal Audit -> Auditor
+        //   Paperwork Clearance                    -> Process Lead
+        // ============================================================
+        const INCENTIVE_ROLE_MAP = {
+            'HR Operations': 'Executive',
+            'Compliance': 'Auditor',
+            'Final Clearance': 'Auditor',
+            'Internal Audit': 'Auditor',
+            'Paperwork Clearance': 'Process Lead'
+        };
+        // Teams with a tracked SLA-in-days metric, and the day count that
+        // counts as 100% achieved. Teams without a tracked SLA file
+        // (Compliance, HR Operations) are treated as fully met (100%).
+        const INCENTIVE_SLA_FIELD = {
+            'Final Clearance': { field: 'clearanceSLA', targetDays: 2 },
+            'Paperwork Clearance': { field: 'paperworkSLA', targetDays: 3 },
+            'Internal Audit': { field: 'qmgTimeline', targetDays: 3 }
+        };
+
+        function getIncentiveRole(team) {
+            return INCENTIVE_ROLE_MAP[team] || 'Auditor';
+        }
+
+        function incentiveProductivityPercent(emp) {
+            const hrs = emp.kpis.productivity || 0;
+            return Math.min(150, (hrs / 8) * 100);
+        }
+
+        function incentiveSLAPercent(emp) {
+            const cfg = INCENTIVE_SLA_FIELD[emp.team];
+            if (!cfg || emp.kpis[cfg.field] === undefined || emp.kpis[cfg.field] === null) return 100;
+            const days = emp.kpis[cfg.field];
+            if (days <= cfg.targetDays) return 100;
+            return Math.max(0, 100 - (days - cfg.targetDays) * 10);
+        }
+
+        function incentiveErrorCounts(emp) {
+            const ca = emp.kpis.qmgCAErrors || 0;
+            const nca = (emp.kpis.qmgNCAErrors || 0) + (emp.kpis.internalAuditErrors || 0);
+            return { ca, nca };
+        }
+
+        function incentiveHasCAError(emp) {
+            return incentiveErrorCounts(emp).ca > 0;
+        }
+
+        function proportionalIncentive(achievedPercent, targetPercent, thresholdPercent, maxAmount) {
+            const ratio = achievedPercent / targetPercent;
+            if (ratio >= 1) return maxAmount;
+            if (achievedPercent >= thresholdPercent) return maxAmount * ratio;
+            return 0;
+        }
+
+        function incentiveQualityScore(emp, maxAmount, excellentPct, goodPct) {
+            if (incentiveHasCAError(emp)) {
+                return { amount: 0, percent: 0, note: '❌ CA Error Found — Quality Incentive = ₹0' };
+            }
+            const errors = incentiveErrorCounts(emp).nca;
+            const pct = Math.max(0, 100 - errors * 5);
+            let amount = 0;
+            if (pct >= excellentPct) amount = maxAmount;
+            else if (pct >= goodPct) amount = maxAmount * (pct / excellentPct);
+            return { amount, percent: pct, note: `${pct.toFixed(1)}% quality (${errors} error${errors === 1 ? '' : 's'})` };
+        }
+
+        function incentiveTeamDelimiters(emp, employeePool) {
+            const teammates = (employeePool || []).filter(e => e.team === emp.team);
+            let teamNCA = 0, teamCA = 0;
+            teammates.forEach(e => {
+                const c = incentiveErrorCounts(e);
+                teamNCA += c.nca;
+                teamCA += c.ca;
+            });
+            return {
+                teamNCA, teamCA,
+                ncaDelimiter: teamNCA <= 3 ? 250 : 0,
+                caDelimiter: teamCA === 0 ? 250 : 0
+            };
+        }
+
+        function incentiveNoLeaveTaken(emp) {
+            return (emp.kpis.attendance || 0) >= 100;
+        }
+
+        function incentiveTrainingsCompleted(emp) {
+            const pct = emp.kpis.auditCompletion ?? emp.kpis.allocationCompletion;
+            if (pct === undefined || pct === null) return 0;
+            if (pct >= 90) return 2;
+            if (pct >= 50) return 1;
+            return 0;
+        }
+
+        function calculateIncentive(emp, employeePool) {
+            const role = getIncentiveRole(emp.team);
+            const k = emp.kpis;
+            const prodPct = incentiveProductivityPercent(emp);
+            const slaPct = incentiveSLAPercent(emp);
+            const delimiters = incentiveTeamDelimiters(emp, employeePool);
+            const components = [];
+            let total = 0;
+
+            function add(name, amount, max, note) {
+                amount = Math.round(amount);
+                total += amount;
+                components.push({ name, amount, max, note: note || '' });
+            }
+
+            if (role === 'Executive') {
+                add('Productivity', proportionalIncentive(prodPct, 100, 85, 1150), 1150, `${prodPct.toFixed(1)}% of target`);
+                add('Audit Timelines / SLA', proportionalIncentive(slaPct, 100, 85, 750), 750, `${slaPct.toFixed(1)}% of target`);
+                const q = incentiveQualityScore(emp, 650, 99.5, 95);
+                add('Quality Incentive', q.amount, 650, q.note);
+                add('Team NCA Delimiter', delimiters.ncaDelimiter, 250, `Team NCA count: ${delimiters.teamNCA}`);
+                add('Team CA Delimiter', delimiters.caDelimiter, 250, `Team CA count: ${delimiters.teamCA}`);
+                add('Process Knowledge Test', proportionalIncentive(k.pkt || 0, 90, 85, 250), 250, `PKT: ${Math.round(k.pkt || 0)}`);
+                add('BG/NH Pending Documents', (k.nhPending === 0 ? 750 : 0), 750, k.nhPending === 0 ? 'No pending cases' : `${k.nhPending} pending case(s)`);
+                add('Leave Compliance', (incentiveNoLeaveTaken(emp) ? 450 : 0), 450, incentiveNoLeaveTaken(emp) ? 'No leave taken' : 'Leave taken');
+            } else if (role === 'Auditor') {
+                add('Productivity', proportionalIncentive(prodPct, 100, 85, 625), 625, `${prodPct.toFixed(1)}% of target`);
+                add('Audit Timelines / SLA', proportionalIncentive(slaPct, 100, 85, 1050), 1050, `${slaPct.toFixed(1)}% of target`);
+                const q = incentiveQualityScore(emp, 875, 99.5, 90);
+                add('Quality Incentive', q.amount, 875, q.note);
+                add('Team NCA Delimiter', delimiters.ncaDelimiter, 250, `Team NCA count: ${delimiters.teamNCA}`);
+                add('Team CA Delimiter', delimiters.caDelimiter, 250, `Team CA count: ${delimiters.teamCA}`);
+                add('Process Knowledge Test', proportionalIncentive(k.pkt || 0, 90, 85, 250), 250, `PKT: ${Math.round(k.pkt || 0)}`);
+                add('BG/NH Pending Documents', (k.nhPending === 0 ? 750 : 0), 750, k.nhPending === 0 ? 'No pending cases' : `${k.nhPending} pending case(s)`);
+                add('Leave Compliance', (incentiveNoLeaveTaken(emp) ? 450 : 0), 450, incentiveNoLeaveTaken(emp) ? 'No leave taken' : 'Leave taken');
+            } else {
+                add('Productivity', proportionalIncentive(prodPct, 100, 85, 700), 700, `${prodPct.toFixed(1)}% of target`);
+                add('Audit Timelines / SLA', proportionalIncentive(slaPct, 100, 85, 950), 950, `${slaPct.toFixed(1)}% of target`);
+                const q = incentiveQualityScore(emp, 550, 99.5, 95);
+                add('Quality Incentive', q.amount, 550, q.note);
+                add('Team NCA Delimiter', delimiters.ncaDelimiter, 250, `Team NCA count: ${delimiters.teamNCA}`);
+                add('Team CA Delimiter', delimiters.caDelimiter, 250, `Team CA count: ${delimiters.teamCA}`);
+                add('Process Knowledge Test', proportionalIncentive(k.pkt || 0, 90, 85, 450), 450, `PKT: ${Math.round(k.pkt || 0)}`);
+                const trainings = incentiveTrainingsCompleted(emp);
+                add('SOP & Trainings', trainings >= 2 ? 900 : trainings === 1 ? 450 : 0, 900, `${trainings} of 2 trainings completed`);
+                add('Leave Compliance', (incentiveNoLeaveTaken(emp) ? 450 : 0), 450, incentiveNoLeaveTaken(emp) ? 'No leave taken' : 'Leave taken');
+            }
+
+            return { role, components, total: Math.round(total), hasCAError: incentiveHasCAError(emp) };
+        }
+
+        function incentiveComponentStatusClass(comp) {
+            if (comp.amount <= 0) return 'red';
+            if (comp.amount >= comp.max) return 'green';
+            return 'amber';
+        }
+
+        const KPI_STATUS_LABELS = { green: 'Excellent', amber: 'Good', red: 'Needs Improvement', blue: 'On Track' };
+        function kpiStatusLabel(status) {
+            return KPI_STATUS_LABELS[(status || 'Blue').toLowerCase()] || status;
+        }
+
+        function renderIncentiveHTML(emp, employeePool) {
+            const incentive = calculateIncentive(emp, employeePool);
+            let html = `<h3>💰 Incentive Breakdown — ${incentive.role}</h3>`;
+            if (incentive.hasCAError) {
+                html += `<div class="incentive-warning">⚠️ <strong>Customer Affecting (CA) Error Detected:</strong> Quality Incentive component = ₹0 for this employee.</div>`;
+            }
+            incentive.components.forEach(comp => {
+                const statusClass = incentiveComponentStatusClass(comp);
+                const statusLabel = statusClass === 'green' ? 'Full' : statusClass === 'amber' ? 'Partial' : 'Not Eligible';
+                html += `
+                    <div class="incentive-row">
+                        <div class="incentive-label">${comp.name}<div style="font-size:11px;color:#666;font-weight:400;margin-top:3px;">${comp.note}</div></div>
+                        <div class="incentive-value">₹${comp.amount.toLocaleString()} <span style="font-size:11px;color:#999;font-weight:400;">/ ₹${comp.max.toLocaleString()}</span></div>
+                        <div class="incentive-status"><span class="status-badge status-${statusClass}">${statusLabel}</span></div>
+                    </div>
+                `;
+            });
+            html += `<div class="incentive-footer">Total Incentive: ₹${incentive.total.toLocaleString()}</div>`;
+            html += `<div style="margin-top:12px;font-size:11px;color:#888;">Role mapped from team (${emp.team}). SOP/Training and Leave Compliance figures are estimated from available KPI trackers — verify against actual training and leave records before payout.</div>`;
+            return html;
+        }
+
+        function incentiveKPIDisplay(kpiName, value) {
+            // Self-contained display formatter (deliberately NOT reusing the
+            // page-local getKPIDisplay(), whose argument order differs between
+            // manager.html and associate.html) so this shared block behaves
+            // identically in both files.
             if (kpiName === 'clearanceSLA' || kpiName === 'paperworkSLA' || kpiName === 'qmgTimeline') {
                 return `${value} days`;
             } else if (kpiName === 'pkt') {
@@ -396,15 +528,55 @@
             return value || 'N/A';
         }
 
-        function downloadPDF() {
-            if (!currentEmployee) {
-                alert('Please select an employee first');
-                return;
-            }
-            alert('📥 Downloading scorecard PDF...');
+        function renderStatusHTML(emp) {
+            const teamKPIs = getTeamKPIs(emp.team);
+            const overallScore = (emp.scores && emp.scores.teamScore) || emp.score || 0;
+            let html = `
+                <div class="kpi-cards">
+                    <div class="kpi-card ${emp.status.toLowerCase()}">
+                        <div class="kpi-label">Overall Rating</div>
+                        <div class="kpi-value">${kpiStatusLabel(emp.status)}</div>
+                        <div class="kpi-subtitle">Score: ${overallScore}</div>
+                    </div>
+                    <div class="kpi-card ${emp.eligibility === 'Eligible' ? 'green' : 'red'}">
+                        <div class="kpi-label">Eligibility</div>
+                        <div class="kpi-value" style="font-size:20px;">${emp.eligibility}</div>
+                    </div>
+                </div>
+                <h3>🚦 KPI Status Overview</h3>
+                <div class="table-container"><table class="table"><tr><th>KPI Name</th><th>Value</th><th>Rating</th></tr>
+            `;
+            teamKPIs.forEach(kpiName => {
+                const kpi = emp.kpis[kpiName];
+                const status = (emp.kpis[kpiName + 'Status'] || 'Blue');
+                html += `<tr><td><strong>${formatKPIName(kpiName)}</strong></td><td>${incentiveKPIDisplay(kpiName, kpi)}</td><td><span class="status-badge status-${status.toLowerCase()}">${kpiStatusLabel(status)}</span></td></tr>`;
+            });
+            html += '</table></div>';
+            return html;
         }
 
-        window.addEventListener('load', loadData);
+        function downloadPDF() {
+            if (!currentEmployee) {
+                showError('No employee selected');
+                return;
+            }
+
+            const element = document.getElementById('dashboardView');
+            const opt = {
+                margin: 10,
+                filename: `Scorecard_${currentEmployee.name}_${currentEmployee.id}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+            
+            html2pdf().set(opt).from(element).save();
+        }
+
+        window.addEventListener('load', () => {
+            loadData();
+            document.getElementById('empIdInput').focus();
+        });
     </script>
 </body>
 </html>
