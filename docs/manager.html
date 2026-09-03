@@ -514,12 +514,12 @@
 
         function getKPIDisplay(kpiName, value) {
             if (kpiName === 'clearanceSLA' || kpiName === 'paperworkSLA' || kpiName === 'qmgTimeline') {
-                return `${value} days`;
+                return `${value}%`;
             } else if (kpiName === 'pkt') {
                 return `${Math.round(value)}`;
             } else if (typeof value === 'number' && value < 1) {
                 return `${(value * 100).toFixed(2)}%`;
-            } else if (kpiName === 'attendance' || kpiName === 'auditCompletion' || kpiName === 'allocationCompletion') {
+            } else if (kpiName === 'attendance' || kpiName === 'auditCompletion' || kpiName === 'allocationCompletion' || kpiName === 'dataChanges') {
                 return `${value?.toFixed?.(2) || value}%`;
             } else if (typeof value === 'number') {
                 return `${value.toFixed(2)}`;
@@ -1291,13 +1291,13 @@ let currentLeadershipSubTab = 'summary';
             'Internal Audit': 'Auditor',
             'Paperwork Clearance': 'Process Lead'
         };
-        // Teams with a tracked SLA-in-days metric, and the day count that
-        // counts as 100% achieved. Teams without a tracked SLA file
-        // (Compliance, HR Operations) are treated as fully met (100%).
+        // Teams with a tracked "% of cases within SLA" metric. Teams without
+        // a tracked SLA file (Compliance, HR Operations) are treated as
+        // fully met (100%).
         const INCENTIVE_SLA_FIELD = {
-            'Final Clearance': { field: 'clearanceSLA', targetDays: 2 },
-            'Paperwork Clearance': { field: 'paperworkSLA', targetDays: 3 },
-            'Internal Audit': { field: 'qmgTimeline', targetDays: 3 }
+            'Final Clearance': 'clearanceSLA',
+            'Paperwork Clearance': 'paperworkSLA',
+            'Internal Audit': 'qmgTimeline'
         };
 
         function getIncentiveRole(team) {
@@ -1311,11 +1311,9 @@ let currentLeadershipSubTab = 'summary';
         }
 
         function incentiveSLAPercent(emp) {
-            const cfg = INCENTIVE_SLA_FIELD[emp.team];
-            if (!cfg || emp.kpis[cfg.field] === undefined || emp.kpis[cfg.field] === null) return 100;
-            const days = emp.kpis[cfg.field];
-            if (days <= cfg.targetDays) return 100;
-            return Math.max(0, 100 - (days - cfg.targetDays) * 10);
+            const field = INCENTIVE_SLA_FIELD[emp.team];
+            if (!field || emp.kpis[field] === undefined || emp.kpis[field] === null) return 100;
+            return emp.kpis[field];
         }
 
         function incentiveErrorCounts(emp) {
@@ -1477,12 +1475,12 @@ let currentLeadershipSubTab = 'summary';
                 return 'No data';
             }
             if (kpiName === 'clearanceSLA' || kpiName === 'paperworkSLA' || kpiName === 'qmgTimeline') {
-                return `${value} days`;
+                return `${value}%`;
             } else if (kpiName === 'pkt') {
                 return `${Math.round(value)}`;
             } else if (typeof value === 'number' && value < 1) {
                 return `${(value * 100).toFixed(2)}%`;
-            } else if (kpiName === 'attendance' || kpiName === 'auditCompletion' || kpiName === 'allocationCompletion') {
+            } else if (kpiName === 'attendance' || kpiName === 'auditCompletion' || kpiName === 'allocationCompletion' || kpiName === 'dataChanges') {
                 return `${value?.toFixed?.(2) || value}%`;
             } else if (typeof value === 'number') {
                 return `${value.toFixed(2)}`;
