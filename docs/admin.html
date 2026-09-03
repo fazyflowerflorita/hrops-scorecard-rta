@@ -215,6 +215,10 @@
 
                     for (let i = headerIdx + 1; i < data.length; i++) {
                         const row = data[i];
+                        // Some sheets report a used-range extending to 1M+ rows
+                        // even though only the first ~50 have real data - skip
+                        // fully-blank rows instead of building a giant array.
+                        if (row.every(c => c === '' || c === undefined || c === null)) continue;
                         const obj = {};
                         for (let j = 0; j < headers.length; j++) {
                             if (headers[j] === '' || headers[j] === undefined || headers[j] === null) continue;
@@ -227,6 +231,32 @@
                     return rows;
                 } catch (e) {
                     console.error('Parse error:', e.message);
+                    return [];
+                }
+            }
+
+            // "Internal Audit Master file.xlsx" has a two-row header (month
+            // date-serial on row 0, "Week1".."Week4" sub-labels on row 1) and
+            // one row per audit-type-per-auditor with Yes/No/"-" per week -
+            // doesn't fit the generic single-header-row parser.
+            parseAuditMasterSheet(sheet) {
+                if (!sheet || !sheet['!ref']) return [];
+                try {
+                    const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+                    if (!data || data.length < 3) return [];
+                    const rows = [];
+                    for (let i = 2; i < data.length; i++) {
+                        const row = data[i];
+                        const auditName = row[0];
+                        const auditorName = row[2];
+                        if (!auditName && !auditorName) continue;
+                        const results = row.slice(3).filter(v => v === 'Yes' || v === 'No');
+                        if (results.length === 0) continue;
+                        rows.push({ auditName, auditorName, results });
+                    }
+                    return rows;
+                } catch (e) {
+                    console.error('Parse error (audit master):', e.message);
                     return [];
                 }
             }
@@ -257,9 +287,29 @@
 
             normalizeName(s) {
                 return (s || '').toString().trim().toLowerCase()
-                    .replace(/[\/,]+/g, ' ')
+                    .replace(/[\/,&]+/g, ' ')
+                    .replace(/\band\b/g, ' ')
                     .replace(/\s+/g, ' ')
                     .trim();
+            }
+
+            // Extract every "Name (count)" / "Name(count)" / "Name - count"
+            // occurrence from a free-text tracker cell, e.g.
+            // "Arjun- 05/Banu- 02/Yogesh-6" or
+            // "Alan(1), Latha( 2), sneha( 1)" or
+            // "Alan(1)  Leonie( 1) Sayee( 1)" (no separators at all).
+            // Scanning for the pattern directly - rather than splitting on a
+            // delimiter - handles all of these inconsistent formats at once.
+            extractNameCounts(text) {
+                const out = [];
+                const str = (text || '').toString();
+                const re = /([A-Za-z][A-Za-z]*)\s*(?:\(\s*(\d+)\s*\)|-\s*(\d+))/g;
+                let m;
+                while ((m = re.exec(str)) !== null) {
+                    const count = parseInt(m[2] !== undefined ? m[2] : m[3], 10);
+                    if (m[1] && !isNaN(count)) out.push({ name: m[1].trim(), count });
+                }
+                return out;
             }
 
             tokenMatch(a, b) {
@@ -275,8 +325,12 @@
                 if (!a || !b) return false;
                 if (a === b) return true;
 
-                const aTokens = a.split(' ').filter(Boolean);
-                const bTokens = b.split(' ').filter(Boolean);
+                // Ignore bare initials ("B" in "Sayee Nivas B") when requiring
+                // every token to match - informal name fields (like a
+                // multi-person tracker cell) usually drop middle initials
+                // entirely rather than misspelling them.
+                const aTokens = a.split(' ').filter(t => t.length > 1);
+                const bTokens = b.split(' ').filter(t => t.length > 1);
                 const shorter = aTokens.length <= bTokens.length ? aTokens : bTokens;
                 const longer = aTokens.length <= bTokens.length ? bTokens : aTokens;
 
@@ -315,6 +369,23 @@
                 });
             }
 
+            // Excel stores dates as a day-serial number (e.g. 46024 = a day in
+            // 2026), not a JS timestamp. `new Date(46024)` silently treats it
+            // as 46024 MILLISECONDS after 1970-01-01 - a nonsense date that
+            // still "works" arithmetically (differences come out as tiny
+            // fractions of a day, rounding every real gap down to ~0-1 via
+            // Math.ceil), which is exactly the kind of wrong-but-plausible
+            // number this pipeline must never produce silently.
+            excelDateToJSDate(value) {
+                if (value === null || value === undefined || value === '') return null;
+                if (typeof value === 'number') {
+                    const utcDays = Math.floor(value - 25569);
+                    return new Date(utcDays * 86400 * 1000);
+                }
+                const d = new Date(value);
+                return isNaN(d.getTime()) ? null : d;
+            }
+
             // Look up a field by header name, tolerant of trailing/leading spaces
             // in the Excel header (e.g. "Audit Status " vs "Audit Status").
             getField(row, key) {
@@ -347,9 +418,27 @@
                     this.mergeIntoExcelData('clientAudit', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('Internal_Audit_Scores') || fileName.includes('Internal Audit Scores')) {
-                    const sheetName = workbook.SheetNames.find(s => s === 'Internal Audit') || workbook.SheetNames[0];
-                    const sheet = workbook.Sheets[sheetName];
-                    this.mergeIntoExcelData('internalAudit', this.parseSheetRows(sheet));
+                    // The current tracker has 3 named tabs: "Internal Audit"
+                    // (Compliance team's weekly error log, Team Member column
+                    // packs multiple names like "Sayee (1) & Pavithra (1)"),
+                    // "QMG Scores" (Internal Audit team's NCA/CA error log,
+                    // similar free-text format), and "Error Tracker" (per-case
+                    // rows used for QMG Timeline). Older exports only have one
+                    // unnamed sheet shaped like "QMG Scores".
+                    const iaSheetName = workbook.SheetNames.find(s => s.trim().toLowerCase() === 'internal audit');
+                    const qmgSheetName = workbook.SheetNames.find(s => s.trim().toLowerCase() === 'qmg scores');
+                    const errTrackerSheetName = workbook.SheetNames.find(s => s.trim().toLowerCase() === 'error tracker');
+                    if (iaSheetName) {
+                        this.mergeIntoExcelData('internalAuditWeekly', this.parseSheetRows(workbook.Sheets[iaSheetName]));
+                    }
+                    if (qmgSheetName) {
+                        this.mergeIntoExcelData('qmgScores', this.parseSheetRows(workbook.Sheets[qmgSheetName]));
+                    } else if (!iaSheetName && !errTrackerSheetName) {
+                        this.mergeIntoExcelData('qmgScores', this.parseSheetRows(workbook.Sheets[workbook.SheetNames[0]]));
+                    }
+                    if (errTrackerSheetName) {
+                        this.mergeIntoExcelData('qmgTimelineData', this.parseSheetRows(workbook.Sheets[errTrackerSheetName]));
+                    }
                 }
                 else if (fileName.includes('Data Changes') || fileName.includes('Data_Changes')) {
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -370,7 +459,7 @@
                 }
                 else if (fileName.includes('Internal Audit Master') || fileName.includes('Internal_Audit_Master')) {
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    this.mergeIntoExcelData('internalAuditMaster', this.parseSheetRows(sheet));
+                    this.mergeIntoExcelData('auditMaster', this.parseAuditMasterSheet(sheet));
                 }
                 else if (fileName.includes('Internal Audit Tracker') || fileName.includes('Internal_Audit_Tracker')) {
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -390,9 +479,15 @@
                     this.mergeIntoExcelData('paperworkAllocation', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('Paperwork Clearance') || fileName.includes('Paperwork_Clearance')) {
-                    const sheetName = workbook.SheetNames.find(s => s.includes('Clearance Tracker')) || workbook.SheetNames[0];
-                    const sheet = workbook.Sheets[sheetName];
-                    this.mergeIntoExcelData('paperworkClearance', this.parseSheetRows(sheet));
+                    // The current file spells it "Clerance Tracker" (typo) and
+                    // has both a main and an "MS -" sheet - merge whichever
+                    // clearance-tracker-shaped sheets exist rather than only
+                    // matching the correctly-spelled name.
+                    const clearanceSheets = workbook.SheetNames.filter(s => /clea?rance tracker/i.test(s));
+                    const sheetNames = clearanceSheets.length > 0 ? clearanceSheets : [workbook.SheetNames[0]];
+                    sheetNames.forEach(sn => {
+                        this.mergeIntoExcelData('paperworkClearance', this.parseSheetRows(workbook.Sheets[sn]));
+                    });
                 }
                 else if (fileName.includes('Incentive')) {
                     // Load Roles sheet for incentive role mapping
@@ -481,7 +576,7 @@
                     else if (team === 'Internal Audit') {
                         emp.kpis.nhPending = this.getNHPending(emp.name);
                         emp.kpis.qmgTimeline = this.getQMGTimeline(emp.name);
-                        emp.kpis.timelineStatus = emp.kpis.qmgTimeline === null ? 'Blue' : emp.kpis.qmgTimeline <= 8 ? 'Green' : 'Red';
+                        emp.kpis.timelineStatus = emp.kpis.qmgTimeline === null ? 'Blue' : emp.kpis.qmgTimeline >= 90 ? 'Green' : emp.kpis.qmgTimeline >= 75 ? 'Amber' : 'Red';
                         emp.kpis.qmgNCAErrors = this.getQMGErrors(emp.name);
                         emp.kpis.qmgCAErrors = this.getQMGCAErrors(emp.name);
                         emp.kpis.auditCompletion = this.getAuditCompletion(emp.name);
@@ -507,7 +602,7 @@
                         score = (emp.kpis.productivity !== null && emp.kpis.productivity >= 8 ? 20 : 0) +
                                 (emp.kpis.pkt !== null && emp.kpis.pkt >= 90 ? 25 : emp.kpis.pkt !== null && emp.kpis.pkt >= 80 ? 20 : 15) +
                                 (emp.kpis.attendance !== null && emp.kpis.attendance >= 90 ? 25 : emp.kpis.attendance !== null && emp.kpis.attendance >= 75 ? 20 : 15) +
-                                (emp.kpis.dataChanges !== null && emp.kpis.dataChanges >= 1 ? 15 : 0) +
+                                (emp.kpis.dataChanges !== null && emp.kpis.dataChanges >= 0.9 ? 15 : 0) +
                                 (emp.kpis.clientPending === null || emp.kpis.clientPending === 0 ? 15 : 0);
                     }
                     else if (team === 'Compliance') {
@@ -526,7 +621,7 @@
                     else if (team === 'Internal Audit') {
                         score = (emp.kpis.productivity !== null && emp.kpis.productivity >= 8 ? 15 : 0) +
                                 (emp.kpis.pkt !== null && emp.kpis.pkt >= 90 ? 20 : 10) +
-                                (emp.kpis.qmgTimeline !== null && emp.kpis.qmgTimeline <= 8 ? 25 : 15) +
+                                (emp.kpis.qmgTimeline !== null && emp.kpis.qmgTimeline >= 90 ? 25 : 15) +
                                 ((emp.kpis.qmgNCAErrors !== null ? emp.kpis.qmgNCAErrors : 0) + (emp.kpis.qmgCAErrors !== null ? emp.kpis.qmgCAErrors : 0) === 0 ? 25 : 15) +
                                 (emp.kpis.attendance !== null && emp.kpis.attendance >= 90 ? 15 : 0);
                     }
@@ -628,10 +723,14 @@
 
             getNHPending(name) {
                 if (!this.excelData.nhPending) return null;
+                // Target = 0 pending: count any record not yet Completed/Cleared,
+                // not just ones literally marked "Pending".
                 const pendingCount = this.excelData.nhPending.filter(row => {
                     const auditor = row['Auditor'] || row['Processor'];
-                    const status = row['Status'];
-                    return auditor && this.nameMatches(auditor, name) && status && status.toString().toLowerCase().includes('pending');
+                    const status = (row['Status'] || '').toString().trim().toLowerCase();
+                    if (!auditor || !this.nameMatches(auditor, name)) return false;
+                    if (!status) return false;
+                    return !status.includes('completed') && !status.includes('cleared');
                 }).length;
                 return pendingCount > 0 ? 1 : 0;
             }
@@ -654,28 +753,19 @@
             }
 
             getInternalAuditErrors(name) {
-                if (!this.excelData.internalAudit) return null;
-                // "Internal Audit Scores.xlsx" is a weekly log, not one row per
-                // employee. The "Auditor who made the error" column packs
-                // multiple people into one cell like:
-                //   "Arjun- 05/Banu- 02/Yogesh-6/ - Compliance team - 01"
-                // Parse each "Name - Count" segment and sum the ones that match
-                // this employee.
-                // Every week is logged (even weeks with "NA" / zero errors), so
-                // once the tracker has data, an employee simply not named in any
-                // error segment genuinely has 0 errors - not "no data".
+                // "Internal Audit" tab of Internal Audit Scores.xlsx: one row per
+                // week, "Team Member" column packs multiple people into one cell
+                // like "Sayee (1) & Pavithra (1)" or "Alan(1)  Leonie( 1)" (no
+                // consistent separator). extractNameCounts() scans for every
+                // "Name (count)" occurrence regardless of what's between them.
+                // Once the tracker has data, an employee simply not named in any
+                // week genuinely has 0 errors - not "no data".
+                if (!this.excelData.internalAuditWeekly) return null;
                 let totalErrors = 0;
-                this.excelData.internalAudit.forEach(row => {
-                    const auditorField = (row['Auditor who made the error'] || '').toString();
-                    if (!auditorField || auditorField.trim().toUpperCase() === 'NA') return;
-                    auditorField.split('/').forEach(seg => {
-                        const m = seg.match(/([A-Za-z][A-Za-z\s]*?)\s*-\s*(\d+)/);
-                        if (!m) return;
-                        const segName = m[1].trim();
-                        const count = parseInt(m[2], 10);
-                        if (segName && !isNaN(count) && this.nameMatches(segName, name)) {
-                            totalErrors += count;
-                        }
+                this.excelData.internalAuditWeekly.forEach(row => {
+                    const teamMemberField = row['Team Member'];
+                    this.extractNameCounts(teamMemberField).forEach(({ name: segName, count }) => {
+                        if (this.nameMatches(segName, name)) totalErrors += count;
                     });
                 });
                 return totalErrors;
@@ -684,12 +774,19 @@
             // HR Operations specific KPIs
             getDataChanges(name) {
                 if (!this.excelData.dataChanges) return null;
+                // % of this employee's received data-change requests that have
+                // a Data Change Completed Date populated.
+                const received = this.excelData.dataChanges.filter(row => {
+                    const assignedTo = row['Assigned to'];
+                    return assignedTo && this.nameMatches(assignedTo, name);
+                }).length;
+                if (received === 0) return null;
                 const completed = this.excelData.dataChanges.filter(row => {
                     const assignedTo = row['Assigned to'];
                     const completedDate = row['Data Change Completed Date'];
                     return assignedTo && this.nameMatches(assignedTo, name) && completedDate;
                 }).length;
-                return completed > 0 ? 1 : 0;
+                return completed / received;
             }
 
             getTenureDiscount(name) {
@@ -716,6 +813,8 @@
             // Final Clearance specific KPIs
             getClearanceSLA(name) {
                 if (!this.excelData.finalClearance) return null;
+                // Turnaround = Date Received -> Fully Clearance Date (not the
+                // intermediate "Date Audited" checkpoint).
                 const rows = this.excelData.finalClearance.filter(r => {
                     const auditor = r['Audited By'];
                     return auditor && this.nameMatches(auditor, name);
@@ -724,84 +823,98 @@
                 if (rows.length === 0) return null;
 
                 let totalDays = 0;
+                let validCount = 0;
                 rows.forEach(row => {
-                    const dateReceived = new Date(row['Date Received']);
-                    const dateAudited = new Date(row['Date Audited']);
-                    if (dateReceived && dateAudited && !isNaN(dateReceived) && !isNaN(dateAudited)) {
-                        const days = Math.ceil((dateAudited - dateReceived) / (1000 * 60 * 60 * 24));
+                    const dateReceived = this.excelDateToJSDate(row['Date Received']);
+                    const fullyCleared = this.excelDateToJSDate(row['Fully Clearance Date']);
+                    if (dateReceived && fullyCleared) {
+                        const days = Math.ceil((fullyCleared - dateReceived) / (1000 * 60 * 60 * 24));
                         totalDays += days;
+                        validCount++;
                     }
                 });
 
-                return rows.length > 0 ? Math.round(totalDays / rows.length) : null;
+                return validCount > 0 ? Math.round(totalDays / validCount) : null;
             }
 
             getClearanceCount(name) {
                 if (!this.excelData.finalClearance) return null;
-                const count = this.excelData.finalClearance.filter(r => {
+                // A case is cleared once it has a Fully Clearance Date; an
+                // employee with none this period genuinely has a count of 0.
+                return this.excelData.finalClearance.filter(r => {
                     const auditor = r['Audited By'];
-                    // Header is "Audit Status " with a trailing space in the Excel file
-                    const status = (this.getField(r, 'Audit Status') || '').toString().toLowerCase();
-                    return auditor && this.nameMatches(auditor, name) && status.includes('cleared');
+                    const fullyCleared = r['Fully Clearance Date'];
+                    return auditor && this.nameMatches(auditor, name) && fullyCleared && fullyCleared.toString().trim().toUpperCase() !== 'NA';
                 }).length;
-                return count > 0 ? count : null;
             }
 
             // Internal Audit specific KPIs
             getQMGTimeline(name) {
-                if (!this.excelData.internalAuditTracker) return null;
-                const rows = this.excelData.internalAuditTracker.filter(r => {
+                // "Error Tracker" tab: Processed to QMG - Start date, per case.
+                // QMG Timeline = % of this employee's cases processed within 8 days.
+                if (!this.excelData.qmgTimelineData) return null;
+                const rows = this.excelData.qmgTimelineData.filter(r => {
                     const auditor = r['Auditor'];
                     return auditor && this.nameMatches(auditor, name);
                 });
-
                 if (rows.length === 0) return null;
 
-                let totalDays = 0;
-                let validDays = 0;
+                let applicable = 0;
+                let onTime = 0;
                 rows.forEach(row => {
-                    const docReceived = new Date(row['Document Received Date'] || row['Document Receiv'] || row['Document Received']);
-                    const processedQMG = new Date(row['Processed to QM'] || row['Processed to QMG']);
-                    if (docReceived && processedQMG && !isNaN(docReceived) && !isNaN(processedQMG)) {
-                        const days = Math.ceil((processedQMG - docReceived) / (1000 * 60 * 60 * 24));
-                        totalDays += days;
-                        validDays++;
+                    const start = this.excelDateToJSDate(row['Start date']);
+                    const processedQMG = this.excelDateToJSDate(row['Processed to QMG']);
+                    if (start && processedQMG) {
+                        applicable++;
+                        const days = Math.ceil((processedQMG - start) / (1000 * 60 * 60 * 24));
+                        if (days <= 8) onTime++;
                     }
                 });
+                return applicable > 0 ? Math.round((onTime / applicable) * 100) : null;
+            }
 
-                return validDays > 0 ? Math.round(totalDays / validDays) : null;
+            // "QMG Scores" tab: same free-text "Name (count)" / "Name- count"
+            // format as the Internal Audit tab, but classified by a CA/NCA
+            // column - NCA and CA errors are separate KPIs.
+            getQMGErrorsByType(name, type) {
+                if (!this.excelData.qmgScores) return null;
+                let total = 0;
+                this.excelData.qmgScores.forEach(row => {
+                    const caNca = (row['CA/NCA'] || '').toString().trim().toUpperCase();
+                    if (caNca !== type) return;
+                    const auditorField = row['Auditor who made the error'];
+                    this.extractNameCounts(auditorField).forEach(({ name: segName, count }) => {
+                        if (this.nameMatches(segName, name)) total += count;
+                    });
+                });
+                return total;
             }
 
             getQMGErrors(name) {
-                if (!this.excelData.qmgErrors) return null;
-                // Tracker logs individual error incidents; an employee with no
-                // rows genuinely made 0 errors, not "no data".
-                return this.excelData.qmgErrors.filter(r => {
-                    const employee = r['Employee Name'];
-                    return employee && this.nameMatches(employee, name);
-                }).length;
+                return this.getQMGErrorsByType(name, 'NCA');
             }
 
             getQMGCAErrors(name) {
-                if (!this.excelData.qmgCAErrorsData) return null;
-                return this.excelData.qmgCAErrorsData.filter(r => {
-                    const auditor = r['Auditor Name'];
-                    return auditor && this.nameMatches(auditor, name);
-                }).length;
+                return this.getQMGErrorsByType(name, 'CA');
             }
 
             getAuditCompletion(name) {
-                if (!this.excelData.internalAuditTracker) return null;
-                const assigned = this.excelData.internalAuditTracker.filter(r => {
-                    const auditor = r['Auditor'];
-                    return auditor && this.nameMatches(auditor, name);
-                }).length;
-                const completed = this.excelData.internalAuditTracker.filter(r => {
-                    const auditor = r['Auditor'];
-                    const processedQMG = r['Processed to QM'] || r['Processed to QMG'];
-                    return auditor && this.nameMatches(auditor, name) && processedQMG;
-                }).length;
-                return assigned > 0 ? (completed / assigned) : null;
+                // "Internal Audit Master file.xlsx": one row per audit-type per
+                // auditor (auditorName can list more than one, e.g. "Banupriya
+                // and Yogesh"), with a Yes/No per week. Completion % = Yes count
+                // over all applicable (Yes+No) weeks across every audit type
+                // this employee is responsible for.
+                if (!this.excelData.auditMaster) return null;
+                let yes = 0, total = 0;
+                this.excelData.auditMaster.forEach(entry => {
+                    if (entry.auditorName && this.nameMatches(entry.auditorName, name)) {
+                        entry.results.forEach(r => {
+                            total++;
+                            if (r === 'Yes') yes++;
+                        });
+                    }
+                });
+                return total > 0 ? (yes / total) : null;
             }
 
             // Paperwork Clearance specific KPIs
@@ -817,9 +930,9 @@
                 let totalDays = 0;
                 let validDays = 0;
                 rows.forEach(row => {
-                    const dateReceived = new Date(row['Received Date']);
-                    const dateCompleted = new Date(row['Completed Date']);
-                    if (dateReceived && dateCompleted && !isNaN(dateReceived) && !isNaN(dateCompleted)) {
+                    const dateReceived = this.excelDateToJSDate(row['Received Date']);
+                    const dateCompleted = this.excelDateToJSDate(row['Completed Date']);
+                    if (dateReceived && dateCompleted) {
                         const days = Math.ceil((dateCompleted - dateReceived) / (1000 * 60 * 60 * 24));
                         totalDays += days;
                         validDays++;
@@ -831,16 +944,21 @@
 
             getAllocationCompletion(name) {
                 if (!this.excelData.paperworkAllocation) return null;
+                // Completed Allocations / Total Allocated - a record is
+                // completed when "Completed Date" is populated (not
+                // "Allocated On", which is populated for every assigned record
+                // regardless of completion).
                 const assigned = this.excelData.paperworkAllocation.filter(r => {
                     const processor = r['Processor'];
                     return processor && this.nameMatches(processor, name);
                 }).length;
+                if (assigned === 0) return null;
                 const completed = this.excelData.paperworkAllocation.filter(r => {
                     const processor = r['Processor'];
-                    const allocatedDate = r['Allocated On'];
-                    return processor && this.nameMatches(processor, name) && allocatedDate;
+                    const completedDate = r['Completed Date'];
+                    return processor && this.nameMatches(processor, name) && completedDate;
                 }).length;
-                return assigned > 0 ? (completed / assigned) : null;
+                return completed / assigned;
             }
 
             getSummary() {
