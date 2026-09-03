@@ -293,6 +293,28 @@
                 return false;
             }
 
+            // Uploading the whole "Score Card" folder means every team
+            // subfolder contributes a file with the same name (e.g.
+            // "Attendance.xlsx"), but those files are NOT identical copies -
+            // each team's copy has its own rows. Merge them (de-duplicating
+            // exact repeats, since some trackers like Production Tracker
+            // genuinely are the same master file duplicated in every folder)
+            // instead of letting the last-processed team silently overwrite
+            // every other team's data.
+            mergeIntoExcelData(key, newRows) {
+                if (!this.excelData[key]) this.excelData[key] = [];
+                this._seenRows = this._seenRows || {};
+                this._seenRows[key] = this._seenRows[key] || new Set();
+                const seen = this._seenRows[key];
+                newRows.forEach(row => {
+                    const hash = JSON.stringify(row);
+                    if (!seen.has(hash)) {
+                        seen.add(hash);
+                        this.excelData[key].push(row);
+                    }
+                });
+            }
+
             // Look up a field by header name, tolerant of trailing/leading spaces
             // in the Excel header (e.g. "Audit Status " vs "Audit Status").
             getField(row, key) {
@@ -306,53 +328,53 @@
             parseFile(workbook, fileName) {
                 if (fileName.includes('Attendance')) {
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    this.excelData.attendance = this.parseSheetRows(sheet);
+                    this.mergeIntoExcelData('attendance', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('Production')) {
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    this.excelData.production = this.parseSheetRows(sheet);
+                    this.mergeIntoExcelData('production', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('Process_Knowledge') || fileName.includes('Process Knowledge')) {
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    this.excelData.pkt = this.parseSheetRows(sheet);
+                    this.mergeIntoExcelData('pkt', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('NH_pending') || fileName.includes('NH pending')) {
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    this.excelData.nhPending = this.parseSheetRows(sheet);
+                    this.mergeIntoExcelData('nhPending', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('Client_System_Audit') || fileName.includes('Client System Audit')) {
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    this.excelData.clientAudit = this.parseSheetRows(sheet);
+                    this.mergeIntoExcelData('clientAudit', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('Internal_Audit_Scores') || fileName.includes('Internal Audit Scores')) {
                     const sheetName = workbook.SheetNames.find(s => s === 'Internal Audit') || workbook.SheetNames[0];
                     const sheet = workbook.Sheets[sheetName];
-                    this.excelData.internalAudit = this.parseSheetRows(sheet);
+                    this.mergeIntoExcelData('internalAudit', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('Data Changes') || fileName.includes('Data_Changes')) {
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    this.excelData.dataChanges = this.parseSheetRows(sheet);
+                    this.mergeIntoExcelData('dataChanges', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('Tenure Discount') || fileName.includes('Tenure_Discount')) {
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    this.excelData.tenureDiscount = this.parseSheetRows(sheet);
+                    this.mergeIntoExcelData('tenureDiscount', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('Termination')) {
                     const sheetName = workbook.SheetNames.find(s => s.includes('RTA')) || workbook.SheetNames[0];
                     const sheet = workbook.Sheets[sheetName];
-                    this.excelData.termination = this.parseSheetRows(sheet);
+                    this.mergeIntoExcelData('termination', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('Final Clearance') || fileName.includes('Final_Clearance')) {
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    this.excelData.finalClearance = this.parseSheetRows(sheet);
+                    this.mergeIntoExcelData('finalClearance', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('Internal Audit Master') || fileName.includes('Internal_Audit_Master')) {
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    this.excelData.internalAuditMaster = this.parseSheetRows(sheet);
+                    this.mergeIntoExcelData('internalAuditMaster', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('Internal Audit Tracker') || fileName.includes('Internal_Audit_Tracker')) {
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    this.excelData.internalAuditTracker = this.parseSheetRows(sheet);
+                    this.mergeIntoExcelData('internalAuditTracker', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('QMG Error') || fileName.includes('QMG_Error')) {
                     // Exact-match sheet names: "NCA errors".includes('CA errors') is
@@ -360,23 +382,23 @@
                     // the wrong sheet for CA errors.
                     const ncaSheetName = workbook.SheetNames.find(s => s.trim().toLowerCase() === 'nca errors') || workbook.SheetNames[1];
                     const caSheetName = workbook.SheetNames.find(s => s.trim().toLowerCase() === 'ca errors');
-                    if (ncaSheetName) this.excelData.qmgErrors = this.parseSheetRows(workbook.Sheets[ncaSheetName]);
-                    if (caSheetName) this.excelData.qmgCAErrorsData = this.parseSheetRows(workbook.Sheets[caSheetName]);
+                    if (ncaSheetName) this.mergeIntoExcelData('qmgErrors', this.parseSheetRows(workbook.Sheets[ncaSheetName]));
+                    if (caSheetName) this.mergeIntoExcelData('qmgCAErrorsData', this.parseSheetRows(workbook.Sheets[caSheetName]));
                 }
                 else if (fileName.includes('Paperwork Allocation') || fileName.includes('Paperwork_Allocation')) {
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    this.excelData.paperworkAllocation = this.parseSheetRows(sheet);
+                    this.mergeIntoExcelData('paperworkAllocation', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('Paperwork Clearance') || fileName.includes('Paperwork_Clearance')) {
                     const sheetName = workbook.SheetNames.find(s => s.includes('Clearance Tracker')) || workbook.SheetNames[0];
                     const sheet = workbook.Sheets[sheetName];
-                    this.excelData.paperworkClearance = this.parseSheetRows(sheet);
+                    this.mergeIntoExcelData('paperworkClearance', this.parseSheetRows(sheet));
                 }
                 else if (fileName.includes('Incentive')) {
                     // Load Roles sheet for incentive role mapping
                     const rolesSheet = workbook.Sheets['Roles'];
                     if (rolesSheet) {
-                        this.excelData.roles = this.parseSheetRows(rolesSheet);
+                        this.mergeIntoExcelData('roles', this.parseSheetRows(rolesSheet));
                     }
                 }
             }
