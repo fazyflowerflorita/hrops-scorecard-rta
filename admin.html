@@ -559,6 +559,7 @@
                     // TEAM-SPECIFIC KPIs
                     if (team === 'HR Operations') {
                         emp.kpis.dataChanges = this.getDataChanges(emp.name);
+                        emp.kpis.dataChangesPending = this.getDataChangesPending(emp.name);
                         emp.kpis.terminationStatus = this.getTerminationStatus(emp.name);
                         emp.kpis.tenureDiscount = this.getTenureDiscount(emp.name);
                     }
@@ -571,7 +572,7 @@
                         emp.kpis.auditStatus = emp.kpis.internalAuditErrors === null ? 'Blue' : emp.kpis.internalAuditErrors === 0 ? 'Green' : emp.kpis.internalAuditErrors <= 3 ? 'Amber' : 'Red';
                         emp.kpis.clearanceSLA = this.getClearanceSLA(emp.name);
                         emp.kpis.clearanceCount = this.getClearanceCount(emp.name);
-                        emp.kpis.slaStatus = emp.kpis.clearanceSLA === null ? 'Blue' : emp.kpis.clearanceSLA <= 2 ? 'Green' : 'Red';
+                        emp.kpis.slaStatus = emp.kpis.clearanceSLA === null ? 'Blue' : emp.kpis.clearanceSLA >= 90 ? 'Green' : emp.kpis.clearanceSLA >= 75 ? 'Amber' : 'Red';
                     }
                     else if (team === 'Internal Audit') {
                         emp.kpis.nhPending = this.getNHPending(emp.name);
@@ -586,7 +587,7 @@
                         emp.kpis.internalAuditErrors = this.getInternalAuditErrors(emp.name);
                         emp.kpis.auditStatus = emp.kpis.internalAuditErrors === null ? 'Blue' : emp.kpis.internalAuditErrors === 0 ? 'Green' : emp.kpis.internalAuditErrors <= 3 ? 'Amber' : 'Red';
                         emp.kpis.paperworkSLA = this.getPaperworkSLA(emp.name);
-                        emp.kpis.slaStatus = emp.kpis.paperworkSLA === null ? 'Blue' : emp.kpis.paperworkSLA <= 3 ? 'Green' : 'Red';
+                        emp.kpis.slaStatus = emp.kpis.paperworkSLA === null ? 'Blue' : emp.kpis.paperworkSLA >= 90 ? 'Green' : emp.kpis.paperworkSLA >= 75 ? 'Amber' : 'Red';
                         emp.kpis.allocationCompletion = this.getAllocationCompletion(emp.name);
                     }
                 });
@@ -614,7 +615,7 @@
                     else if (team === 'Final Clearance') {
                         score = (emp.kpis.productivity !== null && emp.kpis.productivity >= 8 ? 15 : 0) +
                                 (emp.kpis.pkt !== null && emp.kpis.pkt >= 90 ? 20 : 10) +
-                                (emp.kpis.clearanceSLA !== null && emp.kpis.clearanceSLA <= 2 ? 30 : 15) +
+                                (emp.kpis.clearanceSLA !== null && emp.kpis.clearanceSLA >= 90 ? 30 : 15) +
                                 (emp.kpis.internalAuditErrors !== null && emp.kpis.internalAuditErrors === 0 ? 20 : 10) +
                                 (emp.kpis.attendance !== null && emp.kpis.attendance >= 90 ? 15 : 0);
                     }
@@ -628,7 +629,7 @@
                     else if (team === 'Paperwork Audit' || team === 'Paperwork Clearance') {
                         score = (emp.kpis.productivity !== null && emp.kpis.productivity >= 8 ? 15 : 0) +
                                 (emp.kpis.pkt !== null && emp.kpis.pkt >= 90 ? 20 : 10) +
-                                (emp.kpis.paperworkSLA !== null && emp.kpis.paperworkSLA <= 3 ? 30 : 15) +
+                                (emp.kpis.paperworkSLA !== null && emp.kpis.paperworkSLA >= 90 ? 30 : 15) +
                                 (emp.kpis.allocationCompletion !== null && emp.kpis.allocationCompletion >= 0.9 ? 20 : 10) +
                                 (emp.kpis.attendance !== null && emp.kpis.attendance >= 90 ? 15 : 0);
                     }
@@ -789,6 +790,17 @@
                 return completed / received;
             }
 
+            // Companion to getDataChanges() - the raw pending count, since a
+            // single completion % hides whether "pending" means 1 case or 50.
+            getDataChangesPending(name) {
+                if (!this.excelData.dataChanges) return null;
+                return this.excelData.dataChanges.filter(row => {
+                    const assignedTo = row['Assigned to'];
+                    const completedDate = row['Data Change Completed Date'];
+                    return assignedTo && this.nameMatches(assignedTo, name) && !completedDate;
+                }).length;
+            }
+
             getTenureDiscount(name) {
                 if (!this.excelData.tenureDiscount) return null;
                 // "Team Member" can list more than one name (e.g. "Arjun/Ingrid");
@@ -813,8 +825,8 @@
             // Final Clearance specific KPIs
             getClearanceSLA(name) {
                 if (!this.excelData.finalClearance) return null;
-                // Turnaround = Date Received -> Fully Clearance Date (not the
-                // intermediate "Date Audited" checkpoint).
+                // Clearance SLA % = cases with Fully Clearance Date - Date
+                // Received within the 2-day SLA target, over applicable cases.
                 const rows = this.excelData.finalClearance.filter(r => {
                     const auditor = r['Audited By'];
                     return auditor && this.nameMatches(auditor, name);
@@ -822,19 +834,19 @@
 
                 if (rows.length === 0) return null;
 
-                let totalDays = 0;
-                let validCount = 0;
+                let applicable = 0;
+                let withinSLA = 0;
                 rows.forEach(row => {
                     const dateReceived = this.excelDateToJSDate(row['Date Received']);
                     const fullyCleared = this.excelDateToJSDate(row['Fully Clearance Date']);
                     if (dateReceived && fullyCleared) {
+                        applicable++;
                         const days = Math.ceil((fullyCleared - dateReceived) / (1000 * 60 * 60 * 24));
-                        totalDays += days;
-                        validCount++;
+                        if (days <= 2) withinSLA++;
                     }
                 });
 
-                return validCount > 0 ? Math.round(totalDays / validCount) : null;
+                return applicable > 0 ? Math.round((withinSLA / applicable) * 100) : null;
             }
 
             getClearanceCount(name) {
@@ -920,6 +932,8 @@
             // Paperwork Clearance specific KPIs
             getPaperworkSLA(name) {
                 if (!this.excelData.paperworkClearance) return null;
+                // Paperwork SLA % = cases completed within the 3-day SLA
+                // target, over applicable cases.
                 const rows = this.excelData.paperworkClearance.filter(r => {
                     const auditor = r['Audited by'] || r['Aduited BY'];
                     return auditor && this.nameMatches(auditor, name);
@@ -927,19 +941,19 @@
 
                 if (rows.length === 0) return null;
 
-                let totalDays = 0;
-                let validDays = 0;
+                let applicable = 0;
+                let withinSLA = 0;
                 rows.forEach(row => {
                     const dateReceived = this.excelDateToJSDate(row['Received Date']);
                     const dateCompleted = this.excelDateToJSDate(row['Completed Date']);
                     if (dateReceived && dateCompleted) {
+                        applicable++;
                         const days = Math.ceil((dateCompleted - dateReceived) / (1000 * 60 * 60 * 24));
-                        totalDays += days;
-                        validDays++;
+                        if (days <= 3) withinSLA++;
                     }
                 });
 
-                return validDays > 0 ? Math.round(totalDays / validDays) : null;
+                return applicable > 0 ? Math.round((withinSLA / applicable) * 100) : null;
             }
 
             getAllocationCompletion(name) {
