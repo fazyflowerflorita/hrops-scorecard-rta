@@ -738,36 +738,31 @@
 
             getClientPending(name) {
                 if (!this.excelData.clientAudit) return null;
-                // "Pending" column is a literal "Yes"/"No" per audit-cycle row,
-                // not a number in the last column.
+                // Status = "Completed" -> full amount (eligible); anything
+                // else -> pending, no amount.
                 let found = false;
                 let pendingCount = 0;
                 this.excelData.clientAudit.forEach(row => {
                     const member = row['Team Member'];
                     if (member && this.nameMatches(member, name)) {
                         found = true;
-                        const pending = (row['Pending'] || '').toString().trim().toLowerCase();
-                        if (pending === 'yes') pendingCount++;
+                        const status = (row['Status'] || '').toString().trim().toLowerCase();
+                        if (status !== 'completed') pendingCount++;
                     }
                 });
                 return found ? pendingCount : null;
             }
 
             getInternalAuditErrors(name) {
-                // "Internal Audit" tab of Internal Audit Scores.xlsx: one row per
-                // week, "Team Member" column packs multiple people into one cell
-                // like "Sayee (1) & Pavithra (1)" or "Alan(1)  Leonie( 1)" (no
-                // consistent separator). extractNameCounts() scans for every
-                // "Name (count)" occurrence regardless of what's between them.
-                // Once the tracker has data, an employee simply not named in any
-                // week genuinely has 0 errors - not "no data".
-                if (!this.excelData.internalAuditWeekly) return null;
+                // "Error Tracker" tab of Internal Audit Scores.xlsx: sum of
+                // Error Count for rows where Processor matches this employee.
+                if (!this.excelData.qmgTimelineData) return null;
                 let totalErrors = 0;
-                this.excelData.internalAuditWeekly.forEach(row => {
-                    const teamMemberField = row['Team Member'];
-                    this.extractNameCounts(teamMemberField).forEach(({ name: segName, count }) => {
-                        if (this.nameMatches(segName, name)) totalErrors += count;
-                    });
+                this.excelData.qmgTimelineData.forEach(row => {
+                    const processor = row['Processor'];
+                    if (!processor || !this.nameMatches(processor, name)) return;
+                    const errCount = parseFloat(row['Error Count']);
+                    if (!isNaN(errCount)) totalErrors += errCount;
                 });
                 return totalErrors;
             }
@@ -822,11 +817,32 @@
                 return row ? row['Term Status'] || 'Active' : 'Active';
             }
 
+            // "First response" / "Time Cleared" store a time-of-day, but
+            // inconsistently: sometimes a raw Excel time fraction (e.g. 0.3),
+            // sometimes text like "08.02 AM" or "06.46AM" (dot instead of
+            // colon, inconsistent spacing). Returns minutes since midnight.
+            parseTimeOfDayToMinutes(value) {
+                if (value === null || value === undefined || value === '') return null;
+                if (typeof value === 'number') {
+                    const frac = value - Math.floor(value);
+                    return Math.round(frac * 1440);
+                }
+                const str = value.toString().trim();
+                const m = str.match(/^(\d{1,2})[.:](\d{2})\s*(AM|PM)$/i);
+                if (!m) return null;
+                let hours = parseInt(m[1], 10);
+                const minutes = parseInt(m[2], 10);
+                const ampm = m[3].toUpperCase();
+                if (ampm === 'PM' && hours !== 12) hours += 12;
+                if (ampm === 'AM' && hours === 12) hours = 0;
+                return hours * 60 + minutes;
+            }
+
             // Final Clearance specific KPIs
             getClearanceSLA(name) {
                 if (!this.excelData.finalClearance) return null;
-                // Clearance SLA % = cases with Fully Clearance Date - Date
-                // Received within the 2-day SLA target, over applicable cases.
+                // Clearance SLA % = cases where Time Cleared - First response
+                // is within the 30-minute SLA target, over applicable cases.
                 const rows = this.excelData.finalClearance.filter(r => {
                     const auditor = r['Audited By'];
                     return auditor && this.nameMatches(auditor, name);
@@ -837,12 +853,13 @@
                 let applicable = 0;
                 let withinSLA = 0;
                 rows.forEach(row => {
-                    const dateReceived = this.excelDateToJSDate(row['Date Received']);
-                    const fullyCleared = this.excelDateToJSDate(row['Fully Clearance Date']);
-                    if (dateReceived && fullyCleared) {
+                    const firstResponse = this.parseTimeOfDayToMinutes(row['First response']);
+                    const timeCleared = this.parseTimeOfDayToMinutes(row['Time Cleared']);
+                    if (firstResponse !== null && timeCleared !== null) {
                         applicable++;
-                        const days = Math.ceil((fullyCleared - dateReceived) / (1000 * 60 * 60 * 24));
-                        if (days <= 2) withinSLA++;
+                        let diff = timeCleared - firstResponse;
+                        if (diff < 0) diff += 1440;
+                        if (diff <= 30) withinSLA++;
                     }
                 });
 
@@ -931,12 +948,12 @@
 
             // Paperwork Clearance specific KPIs
             getPaperworkSLA(name) {
-                if (!this.excelData.paperworkClearance) return null;
-                // Paperwork SLA % = cases completed within the 3-day SLA
-                // target, over applicable cases.
-                const rows = this.excelData.paperworkClearance.filter(r => {
-                    const auditor = r['Audited by'] || r['Aduited BY'];
-                    return auditor && this.nameMatches(auditor, name);
+                if (!this.excelData.paperworkAllocation) return null;
+                // Paperwork SLA % = cases with Completed Date - Allocated On
+                // within the 1-day SLA target, over applicable cases.
+                const rows = this.excelData.paperworkAllocation.filter(r => {
+                    const processor = r['Processor'];
+                    return processor && this.nameMatches(processor, name);
                 });
 
                 if (rows.length === 0) return null;
@@ -944,12 +961,12 @@
                 let applicable = 0;
                 let withinSLA = 0;
                 rows.forEach(row => {
-                    const dateReceived = this.excelDateToJSDate(row['Received Date']);
-                    const dateCompleted = this.excelDateToJSDate(row['Completed Date']);
-                    if (dateReceived && dateCompleted) {
+                    const allocatedOn = this.excelDateToJSDate(row['Allocated On']);
+                    const completedDate = this.excelDateToJSDate(row['Completed Date']);
+                    if (allocatedOn && completedDate) {
                         applicable++;
-                        const days = Math.ceil((dateCompleted - dateReceived) / (1000 * 60 * 60 * 24));
-                        if (days <= 3) withinSLA++;
+                        const days = Math.ceil((completedDate - allocatedOn) / (1000 * 60 * 60 * 24));
+                        if (days <= 1) withinSLA++;
                     }
                 });
 
@@ -989,12 +1006,118 @@
                 };
             }
 
+            // ===== Date-range filtering =====
+            // The dashboards need real filtering (only count rows that
+            // actually fall in the selected period), not a fake multiplier
+            // applied to the lifetime total. This filters the RAW rows for
+            // each source, then the existing extractKPIs/calculateTeamScores
+            // pipeline re-aggregates from that filtered subset - no getter
+            // needs to know about date ranges.
+            //
+            // Some sources have no reliable per-row date (free-text "Week"
+            // labels like "WC 28th Dec" with an ambiguous year, or no date
+            // column at all) - filtering those would either silently drop
+            // real data or require guessing a date. They are intentionally
+            // left unfiltered (always full-history) rather than guessed.
+            filterRowsByDate(rows, dateFields, dateFrom, dateTo) {
+                if (!dateFrom && !dateTo) return rows;
+                return rows.filter(row => {
+                    for (const field of dateFields) {
+                        const d = this.excelDateToJSDate(row[field]);
+                        if (d) {
+                            if (dateFrom && d < dateFrom) return false;
+                            if (dateTo && d > dateTo) return false;
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+            }
+
+            // Sources not filterable by date at all - kept as full history
+            // regardless of the selected range (see note above).
+            static get UNFILTERABLE_SOURCES() {
+                return new Set(['tenureDiscount', 'internalAuditWeekly', 'qmgScores', 'auditMaster', 'roles', 'qmgErrors', 'qmgCAErrorsData']);
+            }
+
+            static get DATE_FIELD_MAP() {
+                return {
+                    clientAudit: ['Assigned Date'],
+                    nhPending: ['Start date', 'Week ending'],
+                    dataChanges: ['Data Changes Received Date'],
+                    finalClearance: ['Date Received'],
+                    paperworkClearance: ['Received Date'],
+                    paperworkAllocation: ['Start Date'],
+                    qmgTimelineData: ['Start date'],
+                    termination: ['Date when HR was Notified', 'Term Tracker Updated']
+                };
+            }
+
+            buildFilteredExcelData(dateFrom, dateTo) {
+                if (!dateFrom && !dateTo) return this.excelData;
+                const filtered = {};
+                const unfilterable = TeamKPIEngine.UNFILTERABLE_SOURCES;
+                const dateFieldMap = TeamKPIEngine.DATE_FIELD_MAP;
+
+                Object.keys(this.excelData).forEach(key => {
+                    const rows = this.excelData[key];
+                    if (unfilterable.has(key)) {
+                        // Can't verify these rows belong to the selected
+                        // period (no reliable per-row date) - showing the
+                        // full-history total under a specific period label
+                        // would be misleading, so treat as "no data" for any
+                        // active filter rather than guess.
+                        filtered[key] = [];
+                    } else if (key === 'production' || key === 'pkt' || key === 'attendance') {
+                        // Wide format: one column per month (date-serial key).
+                        // Keep the row but drop out-of-range month columns.
+                        filtered[key] = rows.map(row => {
+                            const newRow = {};
+                            Object.entries(row).forEach(([k, v]) => {
+                                if (k === 'Team Member') { newRow[k] = v; return; }
+                                const num = Number(k);
+                                if (!isNaN(num)) {
+                                    const d = this.excelDateToJSDate(num);
+                                    if (d && (!dateFrom || d >= dateFrom) && (!dateTo || d <= dateTo)) newRow[k] = v;
+                                }
+                            });
+                            return newRow;
+                        });
+                    } else if (dateFieldMap[key]) {
+                        filtered[key] = this.filterRowsByDate(rows, dateFieldMap[key], dateFrom, dateTo);
+                    } else {
+                        filtered[key] = rows;
+                    }
+                });
+                return filtered;
+            }
+
+            // Recompute employees/scores against only the rows that fall in
+            // [dateFrom, dateTo], without mutating this engine's live state.
+            computeForDateRange(dateFrom, dateTo) {
+                const savedExcelData = this.excelData;
+                const savedEmployees = this.employees;
+                const savedTeams = this.teams;
+                try {
+                    this.excelData = this.buildFilteredExcelData(dateFrom, dateTo);
+                    this.initializeEmployees();
+                    this.extractKPIs();
+                    this.calculateTeamScores();
+                    return JSON.parse(JSON.stringify(this.employees));
+                } finally {
+                    this.excelData = savedExcelData;
+                    this.employees = savedEmployees;
+                    this.teams = savedTeams;
+                }
+            }
+
             saveToStorage() {
                 const data = {
                     timestamp: new Date().toISOString(),
                     employees: this.employees,
                     teams: this.teams,
-                    summary: this.getSummary()
+                    summary: this.getSummary(),
+                    excelData: this.excelData
                 };
                 localStorage.setItem('hrops_scorecard_data', JSON.stringify(data));
                 return data;
