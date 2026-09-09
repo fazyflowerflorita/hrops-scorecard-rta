@@ -560,7 +560,9 @@
         }
 
         function getKPIDisplay(kpiName, value) {
-            if (kpiName === 'clearanceSLA' || kpiName === 'paperworkSLA' || kpiName === 'qmgTimeline') {
+            if (kpiName === 'nhPending' || kpiName === 'clientPending') {
+                return `${Math.round(value)}`;
+            } else if (kpiName === 'clearanceSLA' || kpiName === 'paperworkSLA' || kpiName === 'qmgTimeline') {
                 return `${value}%`;
             } else if (kpiName === 'pkt') {
                 return `${Math.round(value)}`;
@@ -1498,7 +1500,9 @@ let currentLeadershipSubTab = 'summary';
             if (value === null || value === undefined) {
                 return 'No data';
             }
-            if (kpiName === 'clearanceSLA' || kpiName === 'paperworkSLA' || kpiName === 'qmgTimeline') {
+            if (kpiName === 'nhPending' || kpiName === 'clientPending') {
+                return `${Math.round(value)}`;
+            } else if (kpiName === 'clearanceSLA' || kpiName === 'paperworkSLA' || kpiName === 'qmgTimeline') {
                 return `${value}%`;
             } else if (kpiName === 'pkt') {
                 return `${Math.round(value)}`;

@@ -265,7 +265,9 @@
 
         function getKPIDisplay(emp, kpiName) {
             const kpi = emp.kpis[kpiName];
-            if (kpiName === 'clearanceSLA' || kpiName === 'paperworkSLA' || kpiName === 'qmgTimeline') {
+            if (kpiName === 'nhPending' || kpiName === 'clientPending') {
+                return `${Math.round(kpi)}`;
+            } else if (kpiName === 'clearanceSLA' || kpiName === 'paperworkSLA' || kpiName === 'qmgTimeline') {
                 return `${kpi}%`;
             } else if (kpiName === 'pkt') {
                 return `${Math.round(kpi)}`;
@@ -687,7 +689,9 @@ let currentDashboardTab = 'profile';
             if (value === null || value === undefined) {
                 return 'No data';
             }
-            if (kpiName === 'clearanceSLA' || kpiName === 'paperworkSLA' || kpiName === 'qmgTimeline') {
+            if (kpiName === 'nhPending' || kpiName === 'clientPending') {
+                return `${Math.round(value)}`;
+            } else if (kpiName === 'clearanceSLA' || kpiName === 'paperworkSLA' || kpiName === 'qmgTimeline') {
                 return `${value}%`;
             } else if (kpiName === 'pkt') {
                 return `${Math.round(value)}`;
