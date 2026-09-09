@@ -131,13 +131,31 @@ class TeamKPIEngine {
                 try {
                     const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
                     if (!data || data.length < 3) return [];
+
+                    // Row 0 has one date-serial per month, but it's only set on
+                    // the FIRST of that month's 4 "Week" sub-columns (the other
+                    // 3 are blank) - forward-fill it across those blanks so
+                    // every result column knows its real date.
+                    const dateRow = data[0];
+                    const colDates = [];
+                    let lastDate = null;
+                    for (let c = 0; c < dateRow.length; c++) {
+                        if (typeof dateRow[c] === 'number') lastDate = dateRow[c];
+                        colDates[c] = lastDate;
+                    }
+
                     const rows = [];
                     for (let i = 2; i < data.length; i++) {
                         const row = data[i];
                         const auditName = row[0];
                         const auditorName = row[2];
                         if (!auditName && !auditorName) continue;
-                        const results = row.slice(3).filter(v => v === 'Yes' || v === 'No');
+                        const results = [];
+                        for (let c = 3; c < row.length; c++) {
+                            if (row[c] === 'Yes' || row[c] === 'No') {
+                                results.push({ date: colDates[c], value: row[c] });
+                            }
+                        }
                         if (results.length === 0) continue;
                         rows.push({ auditName, auditorName, results });
                     }
@@ -826,7 +844,7 @@ class TeamKPIEngine {
                     if (entry.auditorName && this.nameMatches(entry.auditorName, name)) {
                         entry.results.forEach(r => {
                             total++;
-                            if (r === 'Yes') yes++;
+                            if (r.value === 'Yes') yes++;
                         });
                     }
                 });
@@ -924,7 +942,7 @@ class TeamKPIEngine {
             // Sources not filterable by date at all - kept as full history
             // regardless of the selected range (see note above).
             static get UNFILTERABLE_SOURCES() {
-                return new Set(['tenureDiscount', 'internalAuditWeekly', 'qmgScores', 'auditMaster', 'roles', 'qmgErrors', 'qmgCAErrorsData']);
+                return new Set(['tenureDiscount', 'internalAuditWeekly', 'qmgScores', 'roles', 'qmgErrors', 'qmgCAErrorsData']);
             }
 
             static get DATE_FIELD_MAP() {
@@ -970,6 +988,22 @@ class TeamKPIEngine {
                             });
                             return newRow;
                         });
+                    } else if (key === 'auditMaster') {
+                        // Each result already carries its own real date (from
+                        // the sheet's month-header row) - filter per-result,
+                        // not per-row, since one row spans many weeks/months.
+                        filtered[key] = rows
+                            .map(row => {
+                                const results = row.results.filter(r => {
+                                    const d = this.excelDateToJSDate(r.date);
+                                    if (!d) return false;
+                                    if (dateFrom && d < dateFrom) return false;
+                                    if (dateTo && d > dateTo) return false;
+                                    return true;
+                                });
+                                return { ...row, results };
+                            })
+                            .filter(row => row.results.length > 0);
                     } else if (dateFieldMap[key]) {
                         filtered[key] = this.filterRowsByDate(rows, dateFieldMap[key], dateFrom, dateTo);
                     } else {
