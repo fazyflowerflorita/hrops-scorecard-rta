@@ -757,6 +757,39 @@ class TeamKPIEngine {
                 return hours * 60 + minutes;
             }
 
+            // "QMG Scores" tab's Week column is free text like "WC 28th Dec",
+            // "WC 04th Jan", "WC 8thFeb" (no space), "WC 8 th March" (space in
+            // the ordinal suffix) - no year. Confirmed: December entries are
+            // 2025, every other month in this file is 2026.
+            parseWeekCommencingDate(weekStr) {
+                if (!weekStr) return null;
+                const m = weekStr.toString().match(/(\d{1,2})\s*(?:st|nd|rd|th)?\s*([A-Za-z]+)/i);
+                if (!m) return null;
+                const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+                const monthIdx = monthNames.indexOf(m[2].toLowerCase().slice(0, 3));
+                if (monthIdx === -1) return null;
+                const day = parseInt(m[1], 10);
+                const year = monthIdx === 11 ? 2025 : 2026;
+                return new Date(year, monthIdx, day);
+            }
+
+            // Tenure Discount's "Audit Cycle" is free text like "Jan - Week 1",
+            // "Jan - Week 2" - no year (confirmed: this tracker is 2026) and no
+            // defined day range for "Week N". Assumed convention: Week 1 =
+            // days 1-7, Week 2 = 8-14, Week 3 = 15-21, Week 4 = 22-end -
+            // using the first day of that range as the row's date.
+            parseAuditCycleDate(cycleStr) {
+                if (!cycleStr) return null;
+                const m = cycleStr.toString().match(/([A-Za-z]+)\s*-?\s*Week\s*(\d+)/i);
+                if (!m) return null;
+                const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+                const monthIdx = monthNames.indexOf(m[1].toLowerCase().slice(0, 3));
+                if (monthIdx === -1) return null;
+                const week = parseInt(m[2], 10);
+                const day = 1 + (week - 1) * 7;
+                return new Date(2026, monthIdx, day);
+            }
+
             // Final Clearance specific KPIs
             getClearanceSLA(name) {
                 if (!this.excelData.finalClearance) return null;
@@ -956,7 +989,7 @@ class TeamKPIEngine {
             // Sources not filterable by date at all - kept as full history
             // regardless of the selected range (see note above).
             static get UNFILTERABLE_SOURCES() {
-                return new Set(['tenureDiscount', 'internalAuditWeekly', 'qmgScores', 'roles', 'qmgErrors', 'qmgCAErrorsData']);
+                return new Set(['internalAuditWeekly', 'roles', 'qmgErrors', 'qmgCAErrorsData']);
             }
 
             static get DATE_FIELD_MAP() {
@@ -1018,6 +1051,22 @@ class TeamKPIEngine {
                                 return { ...row, results };
                             })
                             .filter(row => row.results.length > 0);
+                    } else if (key === 'qmgScores') {
+                        filtered[key] = rows.filter(row => {
+                            const d = this.parseWeekCommencingDate(row['Week']);
+                            if (!d) return false;
+                            if (dateFrom && d < dateFrom) return false;
+                            if (dateTo && d > dateTo) return false;
+                            return true;
+                        });
+                    } else if (key === 'tenureDiscount') {
+                        filtered[key] = rows.filter(row => {
+                            const d = this.parseAuditCycleDate(row['Audit Cycle']);
+                            if (!d) return false;
+                            if (dateFrom && d < dateFrom) return false;
+                            if (dateTo && d > dateTo) return false;
+                            return true;
+                        });
                     } else if (dateFieldMap[key]) {
                         filtered[key] = this.filterRowsByDate(rows, dateFieldMap[key], dateFrom, dateTo);
                     } else {
