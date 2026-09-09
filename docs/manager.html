@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manager Dashboard - HR Operations Scorecard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="kpi-engine.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
@@ -424,6 +425,49 @@
         let currentFilters = { year: '', month: '', dateStart: '', dateEnd: '', team: '', status: '', eligibility: '' };
         let filteredEmployees = [];
 
+        // ===== Real date-range filtering =====
+        // Converts the selected year/quarter/month/date-range UI values into
+        // an absolute {from, to} Date range. Quarter/month without a year is
+        // ambiguous (which year?), so it's intentionally left unfiltered
+        // rather than guessed.
+        function resolveDateRange(year, quarter, month, dateFromStr, dateToStr) {
+            let from = null, to = null;
+            if (dateFromStr) from = new Date(dateFromStr);
+            if (dateToStr) to = new Date(dateToStr);
+            if (!from && !to && year) {
+                const y = parseInt(year, 10);
+                if (quarter) {
+                    const qStart = { Q1: 0, Q2: 3, Q3: 6, Q4: 9 }[quarter];
+                    from = new Date(y, qStart, 1);
+                    to = new Date(y, qStart + 3, 0, 23, 59, 59);
+                } else if (month) {
+                    const m = parseInt(month, 10) - 1;
+                    from = new Date(y, m, 1);
+                    to = new Date(y, m + 1, 0, 23, 59, 59);
+                } else {
+                    from = new Date(y, 0, 1);
+                    to = new Date(y, 11, 31, 23, 59, 59);
+                }
+            }
+            return { from, to };
+        }
+
+        // Recomputes employees/scores from the raw Excel rows for the given
+        // date range (real filtering), instead of scaling the lifetime
+        // totals by a fake multiplier. Falls back to the unfiltered data if
+        // no range is selected, or if the saved data predates this feature
+        // (no raw excelData was persisted) - never fabricates a value.
+        let dateFilterEngine = null;
+        function getEngineFilteredEmployees(from, to) {
+            if (!from && !to) return data.employees;
+            if (!data.excelData || typeof TeamKPIEngine === 'undefined') return data.employees;
+            if (!dateFilterEngine) {
+                dateFilterEngine = new TeamKPIEngine();
+                dateFilterEngine.excelData = data.excelData;
+            }
+            return dateFilterEngine.computeForDateRange(from, to);
+        }
+
         function loadData() {
             const stored = localStorage.getItem('hrops_scorecard_data');
             if (!stored) {
@@ -466,14 +510,17 @@
             currentFilters.team = document.getElementById('teamFilterGlobal').value;
             currentFilters.status = document.getElementById('statusFilterGlobal').value;
             currentFilters.eligibility = document.getElementById('eligibilityFilter').value;
-            
-            filteredEmployees = allEmployees.filter(emp => {
+
+            const { from, to } = resolveDateRange(currentFilters.year, '', currentFilters.month, currentFilters.dateStart, currentFilters.dateEnd);
+            const recomputed = Object.values(getEngineFilteredEmployees(from, to));
+
+            filteredEmployees = recomputed.filter(emp => {
                 if (currentFilters.team && emp.team !== currentFilters.team) return false;
                 if (currentFilters.status && emp.status !== currentFilters.status) return false;
                 if (currentFilters.eligibility && emp.eligibility !== currentFilters.eligibility) return false;
                 return true;
             });
-            
+
             displayFilterInfo();
             renderProfileView();
         }
@@ -486,7 +533,7 @@
             document.getElementById('teamFilterGlobal').value = '';
             document.getElementById('statusFilterGlobal').value = '';
             document.getElementById('eligibilityFilter').value = '';
-            
+
             currentFilters = { year: '', month: '', dateStart: '', dateEnd: '', team: '', status: '', eligibility: '' };
             filteredEmployees = [...allEmployees];
             displayFilterInfo();
@@ -675,34 +722,11 @@ let currentEmpForView = null;
 
         function getFilteredEmployee(emp) {
             if (!window.empFilters) return emp;
-
             const filters = window.empFilters;
-            const filtered = JSON.parse(JSON.stringify(emp));
-
-            // Adjust KPI values based on filters
-            const hasFilters = filters.quarter || filters.month || filters.year;
-            if (hasFilters) {
-                let modifier = 0.9;
-                if (filters.quarter === 'Q1') modifier = 0.85;
-                else if (filters.quarter === 'Q2') modifier = 0.88;
-                else if (filters.quarter === 'Q3') modifier = 0.92;
-                else if (filters.quarter === 'Q4') modifier = 0.95;
-
-                if (filters.month) {
-                    const monthNum = parseInt(filters.month);
-                    modifier = 0.75 + (monthNum / 12) * 0.2;
-                }
-
-                Object.keys(filtered.kpis).forEach(key => {
-                    if (typeof filtered.kpis[key] === 'number' && !key.includes('Status')) {
-                        filtered.kpis[key] = Math.round(filtered.kpis[key] * modifier * 100) / 100;
-                    }
-                });
-
-                filtered.scores.teamScore = Math.round(filtered.scores.teamScore * modifier);
-            }
-
-            return filtered;
+            const { from, to } = resolveDateRange(filters.year, filters.quarter, filters.month, filters.dateFrom, filters.dateTo);
+            if (!from && !to) return emp;
+            const recomputed = getEngineFilteredEmployees(from, to);
+            return recomputed[emp.id] || emp;
         }
 
         function matchesEmployeeFilters(emp) {
