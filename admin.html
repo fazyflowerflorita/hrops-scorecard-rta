@@ -220,8 +220,15 @@
                         // fully-blank rows instead of building a giant array.
                         if (row.every(c => c === '' || c === undefined || c === null)) continue;
                         const obj = {};
+                        const seenHeaders = new Set();
                         for (let j = 0; j < headers.length; j++) {
                             if (headers[j] === '' || headers[j] === undefined || headers[j] === null) continue;
+                            // Several trackers repeat a header name later in the
+                            // row (e.g. a second, mostly-blank "Status" column) -
+                            // keep only the first occurrence so it can't silently
+                            // overwrite the real value with a blank.
+                            if (seenHeaders.has(headers[j])) continue;
+                            seenHeaders.add(headers[j]);
                             obj[headers[j]] = row[j] !== undefined ? row[j] : '';
                         }
                         rows.push(obj);
@@ -741,32 +748,39 @@
             }
 
             getNHPending(name) {
+                // Attributed to the Processor (who did the work), not the
+                // Auditor (who reviewed it) - matching on Auditor was
+                // wrongly attributing almost every pending case to whichever
+                // Internal Audit teammate happened to review it, instead of
+                // the person actually responsible for the pending item.
                 if (!this.excelData.nhPending) return null;
-                // Target = 0 pending: count any record not yet Completed/Cleared,
-                // not just ones literally marked "Pending".
-                const pendingCount = this.excelData.nhPending.filter(row => {
-                    const auditor = row['Auditor'] || row['Processor'];
+                let found = false;
+                let pendingCount = 0;
+                this.excelData.nhPending.forEach(row => {
+                    const processor = row['Processor'];
+                    if (!processor || !this.nameMatches(processor, name)) return;
+                    found = true;
                     const status = (row['Status'] || '').toString().trim().toLowerCase();
-                    if (!auditor || !this.nameMatches(auditor, name)) return false;
-                    if (!status) return false;
-                    return !status.includes('completed') && !status.includes('cleared');
-                }).length;
-                return pendingCount > 0 ? 1 : 0;
+                    if (status === 'pending') pendingCount++;
+                });
+                return found ? pendingCount : null;
             }
 
             getClientPending(name) {
+                // Same logic as NH Pending: if Status = "Pending", count it
+                // against that Team Member; if "Completed", it contributes 0.
+                // Distinguish "never in this tracker" (no data) from "in it,
+                // all completed" (a real 0) - this file only covers certain
+                // teams, so an absent employee shouldn't show a false "0".
                 if (!this.excelData.clientAudit) return null;
-                // Status = "Completed" -> full amount (eligible); anything
-                // else -> pending, no amount.
                 let found = false;
                 let pendingCount = 0;
                 this.excelData.clientAudit.forEach(row => {
                     const member = row['Team Member'];
-                    if (member && this.nameMatches(member, name)) {
-                        found = true;
-                        const status = (row['Status'] || '').toString().trim().toLowerCase();
-                        if (status !== 'completed') pendingCount++;
-                    }
+                    if (!member || !this.nameMatches(member, name)) return;
+                    found = true;
+                    const status = (row['Status'] || '').toString().trim().toLowerCase();
+                    if (status === 'pending') pendingCount++;
                 });
                 return found ? pendingCount : null;
             }
